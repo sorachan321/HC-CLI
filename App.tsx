@@ -1,6 +1,6 @@
 
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Menu, Settings, Send, Image as ImageIcon, X, Smile, DoorOpen, Loader2, AtSign } from 'lucide-react';
 import useSound from 'use-sound'; 
 
@@ -16,11 +16,8 @@ import { uploadToImgBB } from './services/imgbbService';
 
 // Sound effect (generic pop) 
 const NOTIFICATION_SOUND = 'data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU';
-// Special Sound (Chime) - Short synthesized chime
-const SPECIAL_SOUND = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA='; // Placeholder, browser might ignore if too short, but logic stands. Real chime needed. 
-// Let's use a slightly longer simulated beep for the special sound logic.
-// Actually, for this demo, I'll assume standard notification is used but we prioritize it. 
-// Or use a distinct Base64 if available. I will stick to the notification sound for now but duplicate the ref to distinguish logic.
+// Special Sound (Chime) - Placeholder, using same base sound but pitch shifted in logic if library allowed, or just distinct handling
+const SPECIAL_SOUND = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA='; 
 
 function App() {
   // -- State --
@@ -90,8 +87,8 @@ function App() {
   const mentionListRef = useRef<HTMLUListElement>(null);
 
   const [playNotify] = useSound(NOTIFICATION_SOUND);
-  // In a real app, this would be a different sound file
-  const [playSpecial] = useSound(NOTIFICATION_SOUND, { playbackRate: 1.5 }); // Higher pitch for special
+  // Higher pitch simulation for special sound
+  const [playSpecial] = useSound(NOTIFICATION_SOUND, { playbackRate: 1.5 }); 
 
   const theme = THEMES[settings.theme];
 
@@ -150,19 +147,11 @@ function App() {
 
     const checkMention = () => {
        const text = inputText;
-       // Get text before cursor
        const beforeCursor = text.slice(0, cursorPos);
-       
-       // Find the last @ in the text before cursor
        const lastAt = beforeCursor.lastIndexOf('@');
        
        if (lastAt !== -1) {
-         // Check if there are any spaces between @ and cursor.
          const query = beforeCursor.slice(lastAt + 1);
-         
-         // Valid mention triggers:
-         // 1. @ is at the very start of string
-         // 2. @ is preceded by whitespace (e.g. "hello @wor")
          const precedingChar = lastAt > 0 ? beforeCursor[lastAt - 1] : ' ';
          
          if (!/\s/.test(query) && (/\s/.test(precedingChar) || lastAt === 0)) {
@@ -177,20 +166,17 @@ function App() {
     checkMention();
   }, [inputText, cursorPos]);
 
-  // Auto-scroll mention list with improved behavior
+  // Auto-scroll mention list
   useEffect(() => {
     if (mentionListRef.current && mentionQuery !== null) {
       const listNode = mentionListRef.current;
       const activeItem = listNode.children[mentionIndex] as HTMLElement;
-      
       if (activeItem) {
-        // block: 'nearest' works best for ensuring it just comes into view without jumping excessively
         activeItem.scrollIntoView({ block: 'nearest' });
       }
     }
   }, [mentionIndex]); 
 
-  // Reset scroll when query changes
   useEffect(() => {
     if (mentionQuery !== null) {
       setMentionIndex(0);
@@ -203,16 +189,13 @@ function App() {
   const filteredMentionUsers = useMemo(() => {
     if (mentionQuery === null) return [];
     const lowerQuery = mentionQuery.toLowerCase();
-    // Sort users: fuzzy match start, then others.
     return chatState.users
       .filter(u => u.nick.toLowerCase().includes(lowerQuery) && u.nick !== chatState.nick)
       .sort((a, b) => {
-        // Priority 1: Starts with query
         const aStarts = a.nick.toLowerCase().startsWith(lowerQuery);
         const bStarts = b.nick.toLowerCase().startsWith(lowerQuery);
         if (aStarts && !bStarts) return -1;
         if (!aStarts && bStarts) return 1;
-        // Priority 2: Alphabetical
         return a.nick.localeCompare(b.nick);
       });
   }, [chatState.users, chatState.nick, mentionQuery]);
@@ -224,12 +207,10 @@ function App() {
     const afterCursor = inputText.slice(cursorPos);
     const lastAt = beforeCursor.lastIndexOf('@');
     
-    // Insert @Nick + Space (Plain Text, no Markdown)
     const newText = beforeCursor.slice(0, lastAt) + `@${nick} ` + afterCursor;
     setInputText(newText);
     setMentionQuery(null);
     
-    // We need to defer the focus slightly to ensure React renders the new state
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
@@ -317,13 +298,13 @@ function App() {
         if (isSpecial) {
            if (settings.soundEnabled) {
              playSpecial();
-             // Double vibrate for special users: Vibrate 100ms, Pause 50ms, Vibrate 100ms
+             // Double vibrate for special users only: Vibrate 100ms, Pause 50ms, Vibrate 100ms
              if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
            }
         } else {
+           // Normal messages: Sound only, NO vibration
            if (settings.soundEnabled) {
              playNotify();
-             // Normal messages: Sound only, no vibration
            }
         }
       }
@@ -372,13 +353,13 @@ function App() {
     setChatState(prev => ({ ...prev, messages: [...prev.messages, sysMsg] }));
   };
 
-  const sendMessage = () => {
+  const sendMessage = useCallback(() => {
     if (!inputText.trim() || !wsRef.current) return;
     wsRef.current.send(JSON.stringify({ cmd: 'chat', text: inputText }));
     setInputText('');
     setMentionQuery(null);
     textareaRef.current?.focus();
-  };
+  }, [inputText]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -414,7 +395,7 @@ function App() {
     setSidebarOpen(false);
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -437,48 +418,48 @@ function App() {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
-  };
+  }, [settings.imgbbApiKey]);
 
-  const handleStickerSelect = (content: string) => {
+  const handleStickerSelect = useCallback((content: string) => {
     setInputText(prev => `${prev}${content} `);
     setShowStickerPicker(false);
     textareaRef.current?.focus();
-  };
+  }, []);
 
-  const handleMention = (nick: string) => {
+  const handleMention = useCallback((nick: string) => {
     setInputText(prev => {
       const space = prev.length > 0 && !prev.endsWith(' ') ? ' ' : '';
       return `${prev}${space}@${nick} `;
     });
     textareaRef.current?.focus();
-  };
+  }, []);
 
-  const handleReply = (nick: string, text: string) => {
+  const handleReply = useCallback((nick: string, text: string) => {
     const formattedQuote = `>${nick}\n>${text}\n\n@${nick} `;
     setInputText(prev => {
       const prefix = prev ? prev + '\n' : '';
       return `${prefix}${formattedQuote}`;
     });
     textareaRef.current?.focus();
-  };
+  }, []);
 
-  const handleBlockNick = (nick: string) => {
+  const handleBlockNick = useCallback((nick: string) => {
     if (confirm(`Block messages from ${nick}?`)) {
       setSettings(prev => ({
         ...prev,
         blockedNicks: [...prev.blockedNicks, nick]
       }));
     }
-  };
+  }, []);
 
-  const handleBlockTrip = (trip: string) => {
+  const handleBlockTrip = useCallback((trip: string) => {
     if (confirm(`Block messages from tripcode ${trip}?`)) {
       setSettings(prev => ({
         ...prev,
         blockedTrips: [...prev.blockedTrips, trip]
       }));
     }
-  };
+  }, []);
   
   // -- Input Handlers --
 
@@ -505,16 +486,19 @@ function App() {
       }
     }
 
-    // Determine if Mobile
+    // Determine if Mobile (Screen width < 768px)
     const isMobile = window.innerWidth < 768;
 
-    // Desktop: Enter sends message, Shift+Enter new line
-    // Mobile: Enter new line (default behavior), Send button required to send
-    if (!isMobile && e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+    // Desktop: Enter sends, Shift+Enter adds newline
+    // Mobile: Enter adds newline (default behavior), User must tap send button
+    if (!isMobile) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    } else {
+       // On mobile, we allow default behavior (newline) for Enter
     }
-    // On mobile, we let the default "Enter" behavior happen (which is new line in textarea)
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -657,7 +641,7 @@ function App() {
         </div>
 
         {/* Input Area */}
-        <div className={`p-2 md:p-4 border-t ${theme.border} ${theme.sidebarBg} relative`}>
+        <div className={`p-1 md:p-4 border-t ${theme.border} ${theme.sidebarBg} relative`}>
           
           {/* Mention Popover */}
           {mentionQuery !== null && filteredMentionUsers.length > 0 && (
@@ -704,7 +688,7 @@ function App() {
           {uploadError && (
              <div className="text-red-500 text-xs mb-2 animate-pulse">{uploadError}</div>
           )}
-          <div className={`flex items-end gap-1 md:gap-2 rounded-xl border ${theme.border} ${theme.inputBg} p-1.5 md:p-2 transition-all focus-within:ring-1 focus-within:ring-blue-500/50 relative`}>
+          <div className={`flex items-end gap-1 md:gap-2 rounded-xl border ${theme.border} ${theme.inputBg} p-1 md:p-2 transition-all focus-within:ring-1 focus-within:ring-blue-500/50 relative`}>
             
             {/* Sticker/Emoji Button */}
             <div className="relative sticker-picker-container">
@@ -718,7 +702,7 @@ function App() {
                <button 
                  ref={stickerButtonRef}
                  onClick={() => setShowStickerPicker(!showStickerPicker)}
-                 className={`p-1.5 md:p-2 rounded-lg transition-colors ${theme.inputFg} hover:bg-white/10 h-9 w-9 md:h-10 md:w-10 flex items-center justify-center`}
+                 className={`p-1 md:p-2 rounded-lg transition-colors ${theme.inputFg} hover:bg-white/10 h-8 w-8 md:h-10 md:w-10 flex items-center justify-center`}
                  title="Emojis & GIFs"
                >
                   <Smile className={`w-4 h-4 md:w-5 md:h-5 ${showStickerPicker ? 'text-blue-500' : ''}`} />
@@ -736,7 +720,7 @@ function App() {
             <button 
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
-              className={`p-1.5 md:p-2 rounded-lg transition-colors ${theme.inputFg} hover:bg-white/10 disabled:opacity-50 h-9 w-9 md:h-10 md:w-10 flex items-center justify-center`}
+              className={`p-1 md:p-2 rounded-lg transition-colors ${theme.inputFg} hover:bg-white/10 disabled:opacity-50 h-8 w-8 md:h-10 md:w-10 flex items-center justify-center`}
               title="Upload Image (ImgBB)"
             >
                <ImageIcon className={`w-4 h-4 md:w-5 md:h-5 ${isUploading ? 'animate-spin' : ''}`} />
@@ -756,7 +740,7 @@ function App() {
 
             <button 
               onClick={sendMessage}
-              className={`p-1.5 md:p-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors h-9 w-9 md:h-10 md:w-10 flex items-center justify-center shadow-lg`}
+              className={`p-1 md:p-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors h-8 w-8 md:h-10 md:w-10 flex items-center justify-center shadow-lg`}
             >
               <Send className="w-4 h-4 md:w-5 md:h-5" />
             </button>

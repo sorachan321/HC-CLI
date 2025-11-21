@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useRef } from 'react';
 import { Theme } from '../types';
 import { THEMES } from '../constants';
@@ -203,4 +204,4 @@ const ParticleBackground: React.FC<ParticleBackgroundProps> = ({ themeName }) =>
   );
 };
 
-export default ParticleBackground;
+export default React.memo(ParticleBackground);

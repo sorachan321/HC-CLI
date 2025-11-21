@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -279,4 +280,4 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, currentU
   );
 };
 
-export default MessageItem;
+export default React.memo(MessageItem);
