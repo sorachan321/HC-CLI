@@ -11,10 +11,10 @@
   "dependencies": {
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "lucide-react": "^0.554.0",
     "react-markdown": "^10.1.0",
-    "date-fns": "^4.1.0",
+    "lucide-react": "^0.554.0",
     "remark-gfm": "^4.0.1",
+    "date-fns": "^4.1.0",
     "use-sound": "^5.0.0"
   },
   "devDependencies": {

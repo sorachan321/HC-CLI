@@ -17,15 +17,26 @@ const NOTIFICATION_SOUND = 'data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAA
 function App() {
   // -- State --
   const [settings, setSettings] = useState<AppSettings>(() => {
-    const saved = localStorage.getItem('hackchat_settings');
-    return saved ? JSON.parse(saved) : {
-      theme: 'dark',
-      imgbbApiKey: '',
-      blockedNicks: [],
-      blockedTrips: [],
-      soundEnabled: true,
-      enableEffects: true,
-    };
+    try {
+      const saved = localStorage.getItem('hackchat_settings');
+      return saved ? JSON.parse(saved) : {
+        theme: 'dark',
+        imgbbApiKey: '',
+        blockedNicks: [],
+        blockedTrips: [],
+        soundEnabled: true,
+        enableEffects: true,
+      };
+    } catch {
+       return {
+        theme: 'dark',
+        imgbbApiKey: '',
+        blockedNicks: [],
+        blockedTrips: [],
+        soundEnabled: true,
+        enableEffects: true,
+      };
+    }
   });
 
   const [chatState, setChatState] = useState<ChatState>({
@@ -55,7 +66,11 @@ function App() {
   // -- Effects --
 
   useEffect(() => {
-    localStorage.setItem('hackchat_settings', JSON.stringify(settings));
+    try {
+      localStorage.setItem('hackchat_settings', JSON.stringify(settings));
+    } catch (e) {
+      // Ignore storage errors
+    }
   }, [settings]);
 
   useEffect(() => {
@@ -75,11 +90,6 @@ function App() {
   // -- WebSocket Logic --
 
   const connect = (nick: string, channel: string, password?: string) => {
-    // Save credentials for next time
-    localStorage.setItem('hc_saved_nick', nick);
-    localStorage.setItem('hc_saved_channel', channel);
-    localStorage.setItem('hc_saved_password', password || '');
-
     if (wsRef.current) {
       wsRef.current.close();
     }

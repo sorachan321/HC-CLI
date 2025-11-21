@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { LogIn, AlertCircle } from 'lucide-react';
 import { THEMES } from '../constants';
 import { AppSettings } from '../types';
@@ -11,15 +11,30 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ onJoin, settings, error }) => {
   // Initialize state from localStorage if available
-  const [nick, setNick] = useState(() => localStorage.getItem('hc_saved_nick') || '');
-  const [channel, setChannel] = useState(() => localStorage.getItem('hc_saved_channel') || 'programming');
-  const [password, setPassword] = useState(() => localStorage.getItem('hc_saved_password') || '');
+  const [nick, setNick] = useState(() => {
+    try { return localStorage.getItem('hc_saved_nick') || ''; } catch { return ''; }
+  });
+  const [channel, setChannel] = useState(() => {
+    try { return localStorage.getItem('hc_saved_channel') || 'programming'; } catch { return 'programming'; }
+  });
+  const [password, setPassword] = useState(() => {
+    try { return localStorage.getItem('hc_saved_password') || ''; } catch { return ''; }
+  });
 
   const theme = THEMES[settings.theme];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (nick && channel) {
+      // Save credentials immediately upon user action
+      try {
+        localStorage.setItem('hc_saved_nick', nick);
+        localStorage.setItem('hc_saved_channel', channel);
+        localStorage.setItem('hc_saved_password', password);
+      } catch (err) {
+        console.warn('Could not save credentials to localStorage', err);
+      }
+      
       onJoin(nick, channel, password);
     }
   };
@@ -36,7 +51,7 @@ const Login: React.FC<LoginProps> = ({ onJoin, settings, error }) => {
         {error && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-lg flex items-start gap-3 text-red-500 animate-in fade-in slide-in-from-top-2">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-            <div className="text-sm font-medium">{error}</div>
+            <div className="text-sm font-medium break-words">{error}</div>
           </div>
         )}
         
