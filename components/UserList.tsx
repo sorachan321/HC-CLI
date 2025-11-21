@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Users, Ban, Hash } from 'lucide-react';
 import { User, AppSettings, Theme } from '../types';
@@ -58,11 +59,23 @@ const UserList: React.FC<UserListProps> = ({ users, settings, onMention, onBlock
             {user.trip && (
               <span className="text-xs opacity-40 font-mono truncate max-w-[60px]">{user.trip}</span>
             )}
+            
+            {/* Mobile-only Block Button (visible on small screens) */}
+            <button
+              className="md:hidden p-1.5 text-red-500/50 hover:text-red-500 active:scale-95 transition-all"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent triggering mention
+                onBlockNick(user.nick);
+              }}
+              title="Block User"
+            >
+              <Ban className="w-3.5 h-3.5" />
+            </button>
           </li>
         ))}
       </ul>
 
-      {/* Context Menu */}
+      {/* Context Menu (Desktop) */}
       {contextMenu && (
         <div
           ref={menuRef}

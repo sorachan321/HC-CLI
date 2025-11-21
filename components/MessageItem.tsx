@@ -1,3 +1,4 @@
+
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -198,6 +199,26 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, currentU
           )}
           {msg.trip && <span className="font-mono opacity-50" title="Tripcode">{msg.trip}</span>}
           <span className="opacity-50">{formattedTime}</span>
+
+          {/* MOBILE-ONLY ACTIONS: Visible on small screens, hidden on md+ */}
+          {!isMe && (
+            <div className="flex md:hidden items-center gap-3 ml-2 border-l pl-2 border-gray-500/30">
+              <button 
+                onClick={() => onReply(msg.nick, msg.text)}
+                className={`${theme.accent} opacity-80 hover:opacity-100 transition-opacity`}
+                title="Reply"
+              >
+                <Reply className="w-3.5 h-3.5" />
+              </button>
+              <button 
+                onClick={() => onBlockNick(msg.nick)}
+                className="text-red-500 opacity-80 hover:opacity-100 transition-opacity"
+                title="Block"
+              >
+                <Ban className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Bubble */}
@@ -212,18 +233,18 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, currentU
             </ReactMarkdown>
           </div>
           
-          {/* Actions Trigger */}
+          {/* DESKTOP-ONLY Actions Trigger: Hidden on mobile (md:block), visible on hover */}
           {!isMe && (
             <button 
               onClick={() => setShowActions(!showActions)}
-              className={`absolute -right-8 top-2 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${theme.fg} hover:bg-white/10`}
+              className={`hidden md:block absolute -right-8 top-2 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${theme.fg} hover:bg-white/10`}
             >
               <MoreVertical className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        {/* Action Menu */}
+        {/* Action Menu (Desktop context mainly, or if triggered) */}
         {showActions && !isMe && (
           <div className={`absolute z-10 ${isMe ? 'right-full mr-2' : 'left-full ml-2'} top-0 bg-white dark:bg-slate-800 shadow-xl rounded-lg py-1 min-w-[140px] border border-gray-200 dark:border-slate-700 animate-in fade-in zoom-in-95 duration-200`}>
             <button 
