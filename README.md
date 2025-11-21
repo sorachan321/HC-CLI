@@ -1,4 +1,4 @@
-# Hack.Chat Client Redux 🌸
+# Hack.Chat Client Redux (HC-CLI) 🌸
 
 这是一个基于 React、TypeScript 和 Tailwind CSS 构建的现代 hack.chat 客户端。它旨在提供极致的视觉体验和流畅的交互，拥有精美的主题系统、粒子特效以及现代化的聊天功能。
 
@@ -15,112 +15,115 @@
 
 ---
 
-## 🛠️ 本地开发 (Local Development)
+## 📥 本地部署与运行 (Local Deployment)
 
-如果你想在本地运行或修改代码：
+如果你想在本地电脑或服务器上运行此客户端，请遵循以下步骤。
 
-1.  **环境准备**：确保安装 [Node.js](https://nodejs.org/) (v18+)。
-2.  **安装依赖**：
-    ```bash
-    npm install
-    ```
-3.  **启动开发服务器**：
-    ```bash
-    npm run dev
-    ```
-    访问 `http://localhost:5173` 即可。
+### 1. 环境准备
+确保你的系统已安装：
+*   [Node.js](https://nodejs.org/) (推荐 v18 或更高版本)
+*   [Git](https://git-scm.com/)
 
----
-
-## 🚀 服务器部署指南 (Deployment)
-
-### 方式一：使用 Git Clone 部署到 Linux 服务器 (推荐)
-
-如果你有一台 VPS (Ubuntu/CentOS/Debian)，请按照以下步骤操作：
-
-#### 1. 准备环境
-确保服务器已安装 Node.js, Git 和 Nginx。
+### 2. 克隆仓库
+打开终端（Terminal/PowerShell），运行以下命令下载代码：
 
 ```bash
-# Ubuntu/Debian 示例
-sudo apt update
-sudo apt install nodejs npm git nginx
+git clone https://github.com/sorachan321/HC-CLI.git
+cd HC-CLI
 ```
 
-#### 2. 获取代码
-在服务器上克隆你的仓库：
-
-```bash
-cd /var/www
-git clone https://github.com/AndrewBelt/hack.chat.git  # 请替换为你的实际仓库地址
-cd hack.chat
-```
-
-#### 3. 安装与构建
-安装依赖并生成静态文件：
+### 3. 安装依赖
+下载项目所需的库文件：
 
 ```bash
 npm install
-npm run build
 ```
-构建完成后，你会看到一个 `dist/` 目录，这里面包含了所有需要发布的静态文件。
 
-#### 4. 配置 Web 服务器
+### 4. 运行项目
 
-**选项 A: 使用 Nginx (生产环境推荐)**
-
-创建或编辑 Nginx 配置文件：
+**场景 A：日常使用/开发 (推荐)**
+如果你只是想快速打开用一下，或者想修改代码：
 ```bash
-sudo nano /etc/nginx/sites-available/hackchat
+npm run dev
 ```
+*   运行后，浏览器访问显示的的本地地址 (通常是 `http://localhost:5173`) 即可。
 
-写入以下配置（根据实际路径修改）：
+**场景 B：长期稳定运行 (服务器/挂机)**
+如果你想把它部署在服务器上，或者作为本地的一个固定服务运行：
 
-```nginx
-server {
-    listen 80;
-    server_name chat.yourdomain.com; # 替换为你的域名或 IP
+1.  **构建生产版本**：
+    ```bash
+    npm run build
+    ```
+    这会生成一个 `dist` 文件夹，里面是优化好的静态文件。
 
-    root /var/www/hack.chat/dist;    # 指向构建生成的 dist 目录
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-    
-    # 开启 Gzip 压缩 (可选，优化加载速度)
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript;
-}
-```
-
-启用配置并重启 Nginx：
-```bash
-sudo ln -s /etc/nginx/sites-available/hackchat /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
-```
-
-**选项 B: 使用简易静态服务器 (测试用)**
-
-如果你不想配置 Nginx，可以使用 `serve` 快速运行：
-
-```bash
-npx serve -s dist -l 3000
-```
-此时访问 `http://服务器IP:3000` 即可。
+2.  **启动服务**：
+    你可以使用 `serve` 工具来运行：
+    ```bash
+    npx serve -s dist -l 3000
+    ```
+    访问 `http://localhost:3000` 即可。
 
 ---
 
-### 方式二：静态托管平台 (Vercel / Netlify)
+## 🔄 自动更新指南 (Auto Update)
 
-这是最简单的部署方式，无需服务器。
+由于本项目是基于 React 的前端项目，**单纯的 `git pull` 是不够的**，每次拉取代码后都需要重新构建 (Build) 才能生效。
 
-1.  Fork 本仓库到你的 GitHub。
-2.  登录 [Vercel](https://vercel.com) 或 [Netlify](https://www.netlify.com)。
-3.  导入你的仓库。
-4.  保持默认设置 (Build Command: `npm run build`, Output Directory: `dist`)。
-5.  点击 **Deploy**。
+### 方法一：手动更新
+当你发现仓库有新功能时，在项目根目录下运行：
+
+```bash
+git pull           # 1. 拉取最新代码
+npm install        # 2. 更新依赖 (防止有新库加入)
+npm run build      # 3. 重新构建
+```
+*如果你正在运行 `npm run dev`，它通常会自动检测变化并刷新。如果是生产环境，需重启你的 web 服务器。*
+
+### 方法二：编写自动更新脚本 (Linux/Mac)
+
+你可以创建一个简单的脚本来实现一键更新。
+
+1.  在项目根目录下创建 `update.sh`：
+    ```bash
+    nano update.sh
+    ```
+
+2.  粘贴以下内容：
+    ```bash
+    #!/bin/bash
+    echo "🔍 Checking for updates..."
+    
+    # 拉取代码
+    git pull origin main
+    
+    # 安装依赖并构建
+    echo "📦 Installing dependencies..."
+    npm install
+    
+    echo "🏗️ Building project..."
+    npm run build
+    
+    echo "✅ Update complete! (Please restart your web server if needed)"
+    ```
+
+3.  赋予执行权限：
+    ```bash
+    chmod +x update.sh
+    ```
+
+4.  **以后只需运行 `./update.sh` 即可自动完成所有更新步骤。**
+
+### 方法三：设置 Crontab 自动定时更新 (高级)
+
+如果你希望服务器每天凌晨自动检查更新：
+
+1.  输入 `crontab -e`
+2.  添加一行 (假设项目在 `/home/user/HC-CLI`)：
+    ```bash
+    0 3 * * * cd /home/user/HC-CLI && ./update.sh >> /home/user/HC-CLI/update.log 2>&1
+    ```
+    *这会在每天凌晨 3:00 自动拉取代码并构建。*
 
 ---
 
