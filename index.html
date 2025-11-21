@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -18,10 +17,6 @@
               ring: "hsl(var(--ring))",
               background: "hsl(var(--background))",
               foreground: "hsl(var(--foreground))",
-            },
-            animation: {
-              'rainbow': 'rainbow 2s linear infinite',
-              'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both infinite',
             }
           }
         }
@@ -60,139 +55,6 @@
       
       /* KaTeX adjustments */
       .katex-display { margin: 0.5em 0; overflow-x: auto; overflow-y: hidden; }
-
-      /* Chaos Theme Animations */
-      @keyframes rainbow {
-        0% { color: #ff0000; }
-        14% { color: #ff7f00; }
-        28% { color: #ffff00; }
-        42% { color: #00ff00; }
-        57% { color: #0000ff; }
-        71% { color: #4b0082; }
-        85% { color: #9400d3; }
-        100% { color: #ff0000; }
-      }
-
-      @keyframes shake {
-        10%, 90% { transform: translate3d(-1px, 0, 0); }
-        20%, 80% { transform: translate3d(2px, 0, 0); }
-        30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-        40%, 60% { transform: translate3d(4px, 0, 0); }
-      }
-
-      /* Psychedelic Mode Styles */
-      @keyframes liquid-border {
-        0% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
-        33% { border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%; }
-        66% { border-radius: 100% 60% 20% 100% / 100% 100% 60% 60%; }
-        100% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
-      }
-
-      @keyframes rainbow-bg {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-      }
-
-      .bubble-psychedelic {
-        background: linear-gradient(120deg, #ff00ff, #00ff00, #ffff00);
-        background-size: 200% 200%;
-        color: #000 !important;
-        border: 3px solid #fff;
-        animation: liquid-border 4s infinite ease-in-out, rainbow-bg 2s infinite linear;
-        box-shadow: 4px 4px 0px #000;
-        font-family: 'Courier New', Courier, monospace;
-        font-weight: 900;
-        text-transform: uppercase;
-        transform-origin: center;
-      }
-
-      .bubble-psychedelic-self {
-        background: linear-gradient(120deg, #00ffff, #ff0000, #0000ff);
-        background-size: 200% 200%;
-        color: #fff !important;
-        border: 3px solid #000;
-        animation: liquid-border 3.5s infinite ease-in-out reverse, rainbow-bg 2s infinite linear;
-        box-shadow: -4px 4px 0px #fff;
-        font-family: 'Courier New', Courier, monospace;
-        font-weight: 900;
-        text-transform: uppercase;
-        transform-origin: center;
-      }
-
-      /* Insanity (Glitch) Mode Styles */
-      @keyframes glitch-skew {
-        0% { transform: skew(0deg); }
-        20% { transform: skew(-2deg); }
-        40% { transform: skew(2deg); }
-        60% { transform: skew(-1deg); }
-        80% { transform: skew(1deg); }
-        100% { transform: skew(0deg); }
-      }
-
-      @keyframes rgb-shift {
-        0% { text-shadow: -2px 0 #ff0000, 2px 0 #0000ff; }
-        25% { text-shadow: 2px 0 #00ff00, -2px 0 #ff00ff; }
-        50% { text-shadow: -2px 0 #ffff00, 2px 0 #00ffff; }
-        75% { text-shadow: 2px 0 #ff0000, -2px 0 #0000ff; }
-        100% { text-shadow: -2px 0 #ff0000, 2px 0 #0000ff; }
-      }
-
-      @keyframes border-flicker {
-        0% { border-color: #ff0000; box-shadow: 0 0 5px #ff0000; }
-        33% { border-color: #00ff00; box-shadow: 0 0 10px #00ff00, inset 0 0 5px #00ff00; }
-        66% { border-color: #0000ff; box-shadow: 0 0 5px #0000ff; }
-        100% { border-color: #ff0000; box-shadow: 0 0 15px #ff00ff, 0 0 5px #fff; }
-      }
-
-      .bubble-insanity {
-        background: #000;
-        color: #fff !important;
-        border: 2px solid #ff0000;
-        font-family: 'Courier New', Courier, monospace;
-        letter-spacing: 1px;
-        animation: glitch-skew 0.3s infinite, rgb-shift 0.1s infinite, border-flicker 0.1s infinite steps(2);
-        /* Simulated broken glass clip-path */
-        clip-path: polygon(
-          0% 0%, 
-          100% 0%, 
-          100% 20%, 
-          95% 25%, 
-          100% 30%, 
-          100% 100%, 
-          10% 100%, 
-          5% 95%, 
-          0% 100%
-        );
-        box-shadow: 5px 5px 0px #00ff00;
-      }
-
-      .bubble-insanity-self {
-        background: #000;
-        color: #fff !important;
-        border: 2px solid #00ffff;
-        font-family: 'Courier New', Courier, monospace;
-        letter-spacing: 1px;
-        animation: glitch-skew 0.4s infinite reverse, rgb-shift 0.15s infinite, border-flicker 0.2s infinite steps(3);
-        clip-path: polygon(
-          0% 0%, 
-          90% 0%, 
-          95% 5%, 
-          100% 0%, 
-          100% 100%, 
-          0% 100%, 
-          0% 80%, 
-          5% 75%, 
-          0% 70%
-        );
-        box-shadow: -5px 5px 0px #ff00ff;
-      }
-      
-      .insanity-text-glitch {
-        display: inline-block;
-        position: relative;
-        animation: rgb-shift 0.2s infinite;
-      }
     </style>
   <script type="importmap">
 {

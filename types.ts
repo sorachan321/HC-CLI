@@ -1,4 +1,5 @@
 
+
 export interface HackChatMessage {
   time: number;
   nick: string;
@@ -16,7 +17,7 @@ export interface User {
   uType?: 'user' | 'mod' | 'admin';
 }
 
-export type Theme = 'light' | 'dark' | 'hacker' | 'nebula' | 'dracula' | 'nord' | 'synthwave' | 'c64' | 'solalight' | 'floral' | 'chaos';
+export type Theme = 'light' | 'dark' | 'hacker' | 'nebula' | 'dracula' | 'nord' | 'synthwave' | 'c64' | 'solalight' | 'floral';
 
 export type SpecialColor = 'red' | 'orange' | 'gold' | 'green' | 'cyan' | 'purple';
 
@@ -30,18 +31,17 @@ export interface SpecialUser {
 
 export interface AppSettings {
   theme: Theme;
-  chaosMode: 'classic' | 'psychedelic' | 'insanity'; // Updated: Added Insanity mode
-  imageHost: 'imgbb' | 'gyazo'; 
+  imageHost: 'imgbb' | 'gyazo'; // New: Selectable image host
   imgbbApiKey: string;
-  gyazoAccessToken: string; 
-  tenorApiKey: string; 
+  gyazoAccessToken: string; // New: Gyazo API Token
+  tenorApiKey: string; // New for GIF search
   blockedNicks: string[];
   blockedTrips: string[];
-  specialUsers: SpecialUser[]; 
+  specialUsers: SpecialUser[]; // New: Watched users
   soundEnabled: boolean;
   enableEffects: boolean;
   enableLatex: boolean;
-  autoReconnect: boolean; 
+  autoReconnect: boolean; // New: Auto Reconnect logic
 }
 
 export interface ChatState {

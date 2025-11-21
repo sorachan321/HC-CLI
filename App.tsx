@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Menu, Settings, Send, Image as ImageIcon, X, Smile, DoorOpen, Loader2, AtSign } from 'lucide-react';
 import useSound from 'use-sound'; 
@@ -23,7 +25,6 @@ function App() {
   const [settings, setSettings] = useState<AppSettings>(() => {
     const defaults: AppSettings = {
       theme: 'dark',
-      chaosMode: 'classic', // Default chaos mode
       imageHost: 'imgbb', // Default to ImgBB
       imgbbApiKey: '',
       gyazoAccessToken: '',
@@ -375,9 +376,8 @@ function App() {
          // Append 'A' to the nickname stored in lastConnectionParams
          lastConnectionParams.current.nick += 'A';
          shouldRetryWithNewNick.current = true;
-         // Force close to trigger auto-reconnect loop immediately
-         if (wsRef.current) wsRef.current.close();
-         
+         // The server usually closes connection after this warn, triggering onclose -> connect
+         // If it doesn't close automatically, we force it via current execution flow ending
          addSystemMessage(`Nickname taken. Retrying as ${lastConnectionParams.current.nick}...`);
        } else if (!chatState.joined) {
          setIsConnecting(false); 
@@ -594,7 +594,7 @@ function App() {
   if (isConnecting) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${theme.bg} ${theme.fg} relative overflow-hidden`}>
-        {settings.enableEffects && <ParticleBackground theme={settings.theme} chaosMode={settings.chaosMode} />}
+        {settings.enableEffects && <ParticleBackground themeName={settings.theme} />}
         <div className={`flex flex-col items-center gap-6 z-10 p-8 rounded-2xl bg-black/20 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-300`}>
           <div className="relative">
              <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
@@ -623,7 +623,7 @@ function App() {
   return (
     <div className={`flex h-screen overflow-hidden relative ${theme.bg} ${theme.fg}`}>
       
-      {settings.enableEffects && <ParticleBackground theme={settings.theme} chaosMode={settings.chaosMode} />}
+      {settings.enableEffects && <ParticleBackground themeName={settings.theme} />}
 
       {/* Mobile Header */}
       <div className={`md:hidden fixed top-0 w-full z-20 h-14 border-b ${theme.border} ${theme.sidebarBg} flex items-center justify-between px-4`}>

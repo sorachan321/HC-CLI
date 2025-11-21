@@ -1,6 +1,7 @@
 
+
 import React, { useState } from 'react';
-import { X, Trash2, Image as ImageIcon, Palette, Shield, Volume2, Sparkles, Smile, Calculator, Star, Plus, RefreshCw, Check, AlertTriangle, Zap } from 'lucide-react';
+import { X, Trash2, Image as ImageIcon, Palette, Shield, Volume2, Sparkles, Smile, Calculator, Star, Plus, RefreshCw, Check } from 'lucide-react';
 import { AppSettings, Theme, SpecialColor, SpecialUser } from '../types';
 import { THEMES } from '../constants';
 
@@ -12,8 +13,9 @@ interface SettingsModalProps {
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings, onUpdateSettings }) => {
-  // MOVED: All hooks must be declared before any early return
-  const [epilepsyWarningOpen, setEpilepsyWarningOpen] = useState(false);
+  if (!isOpen) return null;
+
+  const activeTheme = THEMES[settings.theme];
   const [activeTab, setActiveTab] = useState<'general' | 'special'>('general');
   
   // New Special User State
@@ -22,29 +24,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
   const [newSpecialLabel, setNewSpecialLabel] = useState('');
   const [newSpecialColor, setNewSpecialColor] = useState<SpecialColor>('gold');
 
-  const activeTheme = THEMES[settings.theme];
-  const COLORS: SpecialColor[] = ['red', 'orange', 'gold', 'green', 'cyan', 'purple'];
-
   const updateField = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     onUpdateSettings({ ...settings, [key]: value });
-  };
-
-  const handleThemeChange = (themeKey: Theme) => {
-    if (themeKey === 'chaos') {
-      setEpilepsyWarningOpen(true);
-    } else {
-      updateField('theme', themeKey);
-    }
-  };
-
-  const confirmChaosTheme = () => {
-    // Fix: Update all fields at once to prevent state overwrite race condition
-    onUpdateSettings({
-      ...settings,
-      theme: 'chaos',
-      chaosMode: 'classic' // Reset to classic default
-    });
-    setEpilepsyWarningOpen(false);
   };
 
   const removeBlockedNick = (nick: string) => {
@@ -83,40 +64,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     });
   };
 
-  // FIX: Early return moved here, after all hooks
-  if (!isOpen) return null;
-
-  if (epilepsyWarningOpen) {
-    return (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-        <div className="w-full max-w-md p-6 rounded-xl bg-red-900 text-white border-2 border-red-500 shadow-2xl animate-in zoom-in-95">
-          <div className="flex items-center gap-3 mb-4">
-            <AlertTriangle className="w-8 h-8 text-yellow-400 animate-pulse" />
-            <h2 className="text-2xl font-black uppercase">Seizure Warning</h2>
-          </div>
-          <div className="space-y-4 mb-6">
-            <p className="font-bold">PHOTOSENSITIVE EPILEPSY WARNING</p>
-            <p>The "D$CK" theme contains rapidly flashing colors, chaotic movements, and intense visual patterns.</p>
-            <p>It may trigger seizures for people with photosensitive epilepsy.</p>
-          </div>
-          <div className="flex gap-3">
-            <button 
-              onClick={() => setEpilepsyWarningOpen(false)}
-              className="flex-1 py-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              CANCEL (GO BACK)
-            </button>
-            <button 
-              onClick={confirmChaosTheme}
-              className="flex-1 py-3 bg-black/50 text-red-200 font-bold rounded-lg hover:bg-black/70 border border-red-500/30 transition-colors"
-            >
-              I Understand, Enable It
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const COLORS: SpecialColor[] = ['red', 'orange', 'gold', 'green', 'cyan', 'purple'];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -157,49 +105,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                   {(Object.keys(THEMES) as Theme[]).map((themeKey) => (
                     <button
                       key={themeKey}
-                      onClick={() => handleThemeChange(themeKey)}
-                      className={`p-4 rounded-lg border-2 transition-all overflow-hidden relative group ${settings.theme === themeKey ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-transparent hover:border-gray-500'} ${THEMES[themeKey].bg}`}
+                      onClick={() => updateField('theme', themeKey)}
+                      className={`p-4 rounded-lg border-2 transition-all ${settings.theme === themeKey ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-transparent hover:border-gray-500'} ${THEMES[themeKey].bg}`}
                     >
-                      <div className={`text-center font-medium relative z-10 ${THEMES[themeKey].fg}`}>{THEMES[themeKey].name}</div>
-                      {themeKey === 'chaos' && (
-                         <div className="absolute inset-0 bg-gradient-to-r from-red-500 via-green-500 to-blue-500 opacity-20 blur-xl group-hover:opacity-40 transition-opacity" />
-                      )}
+                      <div className={`text-center font-medium ${THEMES[themeKey].fg}`}>{THEMES[themeKey].name}</div>
                     </button>
                   ))}
                 </div>
-
-                {/* Chaos Mode Sub-Settings */}
-                {settings.theme === 'chaos' && (
-                  <div className="col-span-full mt-4 p-4 border border-red-500/50 bg-red-900/20 rounded-lg animate-in fade-in">
-                    <h4 className="font-bold text-red-400 mb-2 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> Chaos Mode</h4>
-                    <div className="flex flex-wrap gap-4">
-                      <button 
-                        onClick={() => updateField('chaosMode', 'classic')}
-                        className={`flex-1 py-2 min-w-[120px] rounded border transition-all ${settings.chaosMode === 'classic' ? 'bg-red-500 text-white border-red-400 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-transparent border-red-800 text-red-500 hover:bg-red-900/50'}`}
-                      >
-                        Classic (Dark)
-                      </button>
-                      <button 
-                        onClick={() => updateField('chaosMode', 'psychedelic')}
-                        className={`flex-1 py-2 min-w-[120px] rounded border transition-all ${settings.chaosMode === 'psychedelic' ? 'bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500 text-black font-bold border-white shadow-[0_0_15px_rgba(236,72,153,0.6)] animate-pulse' : 'bg-transparent border-purple-800 text-purple-500 hover:bg-purple-900/50'}`}
-                      >
-                        Psychedelic (LSD)
-                      </button>
-                      <button 
-                        onClick={() => updateField('chaosMode', 'insanity')}
-                        className={`flex-1 py-2 min-w-[120px] rounded border transition-all font-mono uppercase tracking-widest ${settings.chaosMode === 'insanity' ? 'bg-black text-green-400 border-green-400 shadow-[0_0_15px_#0f0] animate-pulse' : 'bg-black border-gray-800 text-gray-500 hover:text-green-500 hover:border-green-900'}`}
-                        style={{ textShadow: settings.chaosMode === 'insanity' ? '2px 0 #f00, -2px 0 #00f' : 'none' }}
-                      >
-                        Insanity (Glitch)
-                      </button>
-                    </div>
-                    <p className="text-xs mt-2 opacity-70 text-red-300">
-                      {settings.chaosMode === 'classic' && "Default Chaos mode with trailing particles and high contrast."}
-                      {settings.chaosMode === 'psychedelic' && "Rotating kaleidoscope background, melting bubbles, and surreal floating entities."}
-                      {settings.chaosMode === 'insanity' && "Data corruption, broken screens, RGB splits, 8-bit bombs, and system errors. Extreme flashing."}
-                    </p>
-                  </div>
-                )}
               </section>
 
               {/* Experience */}
