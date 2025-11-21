@@ -1,11 +1,10 @@
-
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { format } from 'date-fns';
-import { MoreVertical, Reply, Ban, Hash, Shield, ShieldAlert, User as UserIcon, AtSign } from 'lucide-react';
+import { MoreVertical, Reply, Ban, Hash, Shield, ShieldAlert, User as UserIcon, AtSign, Star } from 'lucide-react';
 import { HackChatMessage, AppSettings, User } from '../types';
 import { THEMES } from '../constants';
 
@@ -54,15 +53,26 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, currentU
   const [showActions, setShowActions] = React.useState(false);
   const theme = THEMES[settings.theme];
 
+  // Check if sender is a "Special User"
+  const specialUser = React.useMemo(() => {
+    if (isMe) return null;
+    return settings.specialUsers.find(u => {
+      if (u.nick && u.nick === msg.nick) return true;
+      if (u.trip && msg.trip && u.trip === msg.trip) return true;
+      return false;
+    });
+  }, [settings.specialUsers, msg.nick, msg.trip, isMe]);
+
   const formattedTime = format(new Date(msg.time), 'HH:mm');
 
   const getRoleIcon = () => {
+    if (specialUser) return <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 animate-pulse" />;
     if (msg.admin) return <ShieldAlert className="w-4 h-4 text-red-500" />;
     if (msg.mod) return <Shield className="w-4 h-4 text-green-500" />;
     return <UserIcon className="w-4 h-4 opacity-50" />;
   };
 
-  const remarkPlugins = [remarkGfm];
+  const remarkPlugins: any[] = [remarkGfm];
   if (settings.enableLatex) remarkPlugins.push(remarkMath);
   
   const rehypePlugins: any[] = [];
@@ -162,6 +172,15 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, currentU
     }
   };
 
+  // Determine Bubble Style
+  let bubbleClass = theme.bubbleOther;
+  if (isMe) {
+    bubbleClass = theme.bubbleSelf;
+  } else if (specialUser) {
+    // Override with special palette if it's a watched user
+    bubbleClass = `${theme.specialColors[specialUser.color]} rounded-2xl rounded-tl-sm shadow-md border-2`;
+  }
+
   return (
     <div className={`group flex mb-4 ${isMe ? 'justify-end' : 'justify-start'}`}>
       <div className={`max-w-[85%] md:max-w-[70%] relative flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
@@ -172,14 +191,17 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, currentU
           <span className="font-bold hover:underline cursor-pointer" onClick={() => onMention(msg.nick)}>
             {msg.nick}
           </span>
+          {specialUser?.label && (
+             <span className={`font-bold text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 border border-white/20 ${isMe ? '' : theme.accent}`}>
+               {specialUser.label}
+             </span>
+          )}
           {msg.trip && <span className="font-mono opacity-50" title="Tripcode">{msg.trip}</span>}
           <span className="opacity-50">{formattedTime}</span>
         </div>
 
         {/* Bubble */}
-        <div
-          className={`relative p-3 ${isMe ? theme.bubbleSelf : theme.bubbleOther}`}
-        >
+        <div className={`relative p-3 transition-colors ${bubbleClass}`}>
           <div className={`markdown-body text-sm leading-relaxed break-words`}>
             <ReactMarkdown 
               remarkPlugins={remarkPlugins} 

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Menu, Settings, Send, Image as ImageIcon, X, Smile, DoorOpen, Loader2, AtSign } from 'lucide-react';
 import useSound from 'use-sound'; 
@@ -15,6 +16,11 @@ import { uploadToImgBB } from './services/imgbbService';
 
 // Sound effect (generic pop) 
 const NOTIFICATION_SOUND = 'data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU';
+// Special Sound (Chime) - Short synthesized chime
+const SPECIAL_SOUND = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA='; // Placeholder, browser might ignore if too short, but logic stands. Real chime needed. 
+// Let's use a slightly longer simulated beep for the special sound logic.
+// Actually, for this demo, I'll assume standard notification is used but we prioritize it. 
+// Or use a distinct Base64 if available. I will stick to the notification sound for now but duplicate the ref to distinguish logic.
 
 function App() {
   // -- State --
@@ -25,6 +31,7 @@ function App() {
       tenorApiKey: '',
       blockedNicks: [],
       blockedTrips: [],
+      specialUsers: [], // New
       soundEnabled: true,
       enableEffects: true,
       enableLatex: true,
@@ -33,7 +40,9 @@ function App() {
     try {
       const saved = localStorage.getItem('hackchat_settings');
       if (saved) {
-        return { ...defaults, ...JSON.parse(saved) }; // Merge to ensure new keys exist
+        const parsed = JSON.parse(saved);
+        // Migrate old settings
+        return { ...defaults, ...parsed };
       }
       return defaults;
     } catch {
@@ -79,6 +88,10 @@ function App() {
   const stickerButtonRef = useRef<HTMLButtonElement>(null);
   const channelInputRef = useRef<HTMLInputElement>(null);
   const mentionListRef = useRef<HTMLUListElement>(null);
+
+  const [playNotify] = useSound(NOTIFICATION_SOUND);
+  // In a real app, this would be a different sound file
+  const [playSpecial] = useSound(NOTIFICATION_SOUND, { playbackRate: 1.5 }); // Higher pitch for special
 
   const theme = THEMES[settings.theme];
 
@@ -288,10 +301,27 @@ function App() {
         admin: data.admin,
         cmd: 'chat'
       };
+      
       setChatState(prev => ({
         ...prev,
         messages: [...prev.messages, newMsg]
       }));
+
+      // Sound Logic
+      if (data.nick !== myNick) {
+        const isSpecial = settings.specialUsers.some(u => 
+          (u.nick && u.nick === data.nick) || 
+          (u.trip && data.trip && u.trip === data.trip)
+        );
+        
+        if (isSpecial) {
+          // Play special sound (prioritized)
+           if (settings.soundEnabled) playSpecial();
+        } else {
+           if (settings.soundEnabled) playNotify();
+        }
+      }
+
     } else if (data.cmd === 'onlineSet') {
       setIsConnecting(false);
       setChatState(prev => ({

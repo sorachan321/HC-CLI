@@ -1,4 +1,5 @@
 
+
 export interface HackChatMessage {
   time: number;
   nick: string;
@@ -18,12 +19,23 @@ export interface User {
 
 export type Theme = 'light' | 'dark' | 'hacker' | 'nebula' | 'dracula' | 'nord' | 'synthwave' | 'c64' | 'solalight' | 'floral';
 
+export type SpecialColor = 'red' | 'orange' | 'gold' | 'green' | 'cyan' | 'purple';
+
+export interface SpecialUser {
+  id: string;
+  nick?: string; // Match by nick
+  trip?: string; // Match by trip
+  label?: string; // Custom suffix e.g. " [My Friend]"
+  color: SpecialColor;
+}
+
 export interface AppSettings {
   theme: Theme;
   imgbbApiKey: string;
   tenorApiKey: string; // New for GIF search
   blockedNicks: string[];
   blockedTrips: string[];
+  specialUsers: SpecialUser[]; // New: Watched users
   soundEnabled: boolean;
   enableEffects: boolean;
   enableLatex: boolean;

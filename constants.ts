@@ -1,5 +1,6 @@
 
-import { Theme } from './types';
+
+import { Theme, SpecialColor } from './types';
 
 export const DEFAULT_CHANNEL = 'programming';
 export const DEFAULT_WS_URL = 'wss://hack.chat/chat-ws';
@@ -16,9 +17,10 @@ export const THEMES: Record<Theme, {
   bubbleSelf: string;
   bubbleOther: string;
   border: string;
-  // New fields for specific mention styling
-  mentionSelf: string;  // Styling for mentions inside MY message (usually needs high contrast against colored bubble)
-  mentionOther: string; // Styling for mentions inside OTHER'S message (usually needs accent color)
+  mentionSelf: string; 
+  mentionOther: string;
+  // New: Color palette for special users, matched to the theme
+  specialColors: Record<SpecialColor, string>;
 }> = {
   light: {
     name: 'Light',
@@ -34,6 +36,14 @@ export const THEMES: Record<Theme, {
     border: 'border-gray-200',
     mentionSelf: 'bg-white text-blue-600 border-white/50 hover:bg-blue-50',
     mentionOther: 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200',
+    specialColors: {
+      red: 'bg-red-50 border-red-200 text-red-900',
+      orange: 'bg-orange-50 border-orange-200 text-orange-900',
+      gold: 'bg-yellow-50 border-yellow-200 text-yellow-900',
+      green: 'bg-green-50 border-green-200 text-green-900',
+      cyan: 'bg-cyan-50 border-cyan-200 text-cyan-900',
+      purple: 'bg-purple-50 border-purple-200 text-purple-900',
+    }
   },
   dark: {
     name: 'Dark',
@@ -49,6 +59,14 @@ export const THEMES: Record<Theme, {
     border: 'border-slate-800',
     mentionSelf: 'bg-white/90 text-blue-700 border-transparent hover:bg-white',
     mentionOther: 'bg-blue-500/20 text-blue-300 border-blue-500/30 hover:bg-blue-500/30',
+    specialColors: {
+      red: 'bg-red-900/20 border-red-700/50 text-red-200',
+      orange: 'bg-orange-900/20 border-orange-700/50 text-orange-200',
+      gold: 'bg-yellow-900/20 border-yellow-700/50 text-yellow-200',
+      green: 'bg-green-900/20 border-green-700/50 text-green-200',
+      cyan: 'bg-cyan-900/20 border-cyan-700/50 text-cyan-200',
+      purple: 'bg-purple-900/20 border-purple-700/50 text-purple-200',
+    }
   },
   hacker: {
     name: 'Hacker',
@@ -64,6 +82,14 @@ export const THEMES: Record<Theme, {
     border: 'border-green-900',
     mentionSelf: 'bg-black text-green-500 border-green-500/50 hover:text-green-400',
     mentionOther: 'bg-green-900/40 text-green-400 border-green-800 hover:bg-green-900/60',
+    specialColors: {
+      red: 'bg-black border-red-700 text-red-500',
+      orange: 'bg-black border-orange-700 text-orange-500',
+      gold: 'bg-black border-yellow-700 text-yellow-500',
+      green: 'bg-green-900/50 border-green-500 text-green-400', // Intensified default
+      cyan: 'bg-black border-cyan-700 text-cyan-500',
+      purple: 'bg-black border-purple-700 text-purple-500',
+    }
   },
   nebula: {
     name: 'Nebula',
@@ -79,6 +105,14 @@ export const THEMES: Record<Theme, {
     border: 'border-indigo-800',
     mentionSelf: 'bg-white text-fuchsia-700 border-fuchsia-300 hover:bg-fuchsia-50',
     mentionOther: 'bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/30 hover:bg-fuchsia-500/30',
+    specialColors: {
+      red: 'bg-red-900/40 border-red-500/50 text-red-200',
+      orange: 'bg-orange-900/40 border-orange-500/50 text-orange-200',
+      gold: 'bg-amber-900/40 border-amber-500/50 text-amber-200',
+      green: 'bg-emerald-900/40 border-emerald-500/50 text-emerald-200',
+      cyan: 'bg-cyan-900/40 border-cyan-500/50 text-cyan-200',
+      purple: 'bg-fuchsia-900/40 border-fuchsia-500/50 text-fuchsia-200',
+    }
   },
   dracula: {
     name: 'Dracula',
@@ -94,6 +128,14 @@ export const THEMES: Record<Theme, {
     border: 'border-[#6272a4]',
     mentionSelf: 'bg-[#282a36] text-[#ff79c6] border-[#bd93f9]/30 hover:bg-[#44475a]',
     mentionOther: 'bg-[#ff79c6]/20 text-[#ff79c6] border-[#ff79c6]/30 hover:bg-[#ff79c6]/30',
+    specialColors: {
+      red: 'bg-[#44475a] border-[#ff5555] text-[#ff5555]',
+      orange: 'bg-[#44475a] border-[#ffb86c] text-[#ffb86c]',
+      gold: 'bg-[#44475a] border-[#f1fa8c] text-[#f1fa8c]',
+      green: 'bg-[#44475a] border-[#50fa7b] text-[#50fa7b]',
+      cyan: 'bg-[#44475a] border-[#8be9fd] text-[#8be9fd]',
+      purple: 'bg-[#44475a] border-[#bd93f9] text-[#bd93f9]',
+    }
   },
   nord: {
     name: 'Nord',
@@ -109,6 +151,14 @@ export const THEMES: Record<Theme, {
     border: 'border-[#4c566a]',
     mentionSelf: 'bg-[#eceff4] text-[#5e81ac] border-transparent hover:bg-white',
     mentionOther: 'bg-[#88c0d0]/20 text-[#88c0d0] border-[#88c0d0]/30 hover:bg-[#88c0d0]/30',
+    specialColors: {
+      red: 'bg-[#3b4252] border-[#bf616a] text-[#bf616a]',
+      orange: 'bg-[#3b4252] border-[#d08770] text-[#d08770]',
+      gold: 'bg-[#3b4252] border-[#ebcb8b] text-[#ebcb8b]',
+      green: 'bg-[#3b4252] border-[#a3be8c] text-[#a3be8c]',
+      cyan: 'bg-[#3b4252] border-[#88c0d0] text-[#88c0d0]',
+      purple: 'bg-[#3b4252] border-[#b48ead] text-[#b48ead]',
+    }
   },
   synthwave: {
     name: 'Synthwave',
@@ -124,6 +174,14 @@ export const THEMES: Record<Theme, {
     border: 'border-[#b967ff]',
     mentionSelf: 'bg-[#241b31] text-[#01cdfe] border-[#05ffa1] hover:text-[#05ffa1]',
     mentionOther: 'bg-[#ff71ce]/20 text-[#ff71ce] border-[#ff71ce]/50 hover:bg-[#ff71ce]/30',
+    specialColors: {
+      red: 'bg-[#241b31] border-[#ff5555] text-[#ff5555] shadow-[0_0_10px_rgba(255,85,85,0.3)]',
+      orange: 'bg-[#241b31] border-[#ffb86c] text-[#ffb86c] shadow-[0_0_10px_rgba(255,184,108,0.3)]',
+      gold: 'bg-[#241b31] border-[#fffb96] text-[#fffb96] shadow-[0_0_10px_rgba(255,251,150,0.3)]',
+      green: 'bg-[#241b31] border-[#05ffa1] text-[#05ffa1] shadow-[0_0_10px_rgba(5,255,161,0.3)]',
+      cyan: 'bg-[#241b31] border-[#01cdfe] text-[#01cdfe] shadow-[0_0_10px_rgba(1,205,254,0.3)]',
+      purple: 'bg-[#241b31] border-[#b967ff] text-[#b967ff] shadow-[0_0_10px_rgba(185,103,255,0.3)]',
+    }
   },
   c64: {
     name: 'C64',
@@ -139,6 +197,14 @@ export const THEMES: Record<Theme, {
     border: 'border-[#a0a0ff]',
     mentionSelf: 'bg-[#4040e0] text-white border-white',
     mentionOther: 'bg-[#a0a0ff] text-[#4040e0] border-[#3030b0]',
+    specialColors: {
+      red: 'bg-[#4040e0] border-2 border-[#880000] text-[#ffaaaa]',
+      orange: 'bg-[#4040e0] border-2 border-[#aa6600] text-[#ffccaa]',
+      gold: 'bg-[#4040e0] border-2 border-[#aaaa00] text-[#ffffaa]',
+      green: 'bg-[#4040e0] border-2 border-[#00aa00] text-[#aaffaa]',
+      cyan: 'bg-[#4040e0] border-2 border-[#00aaaa] text-[#aaffff]',
+      purple: 'bg-[#4040e0] border-2 border-[#aa00aa] text-[#ffaaff]',
+    }
   },
   solalight: {
     name: 'Solarized',
@@ -154,6 +220,14 @@ export const THEMES: Record<Theme, {
     border: 'border-[#93a1a1]',
     mentionSelf: 'bg-[#fdf6e3] text-[#268bd2] border-[#268bd2]',
     mentionOther: 'bg-[#93a1a1]/20 text-[#586e75] border-[#93a1a1]/40',
+    specialColors: {
+      red: 'bg-[#fdf6e3] border-2 border-[#dc322f] text-[#dc322f]',
+      orange: 'bg-[#fdf6e3] border-2 border-[#cb4b16] text-[#cb4b16]',
+      gold: 'bg-[#fdf6e3] border-2 border-[#b58900] text-[#b58900]',
+      green: 'bg-[#fdf6e3] border-2 border-[#859900] text-[#859900]',
+      cyan: 'bg-[#fdf6e3] border-2 border-[#2aa198] text-[#2aa198]',
+      purple: 'bg-[#fdf6e3] border-2 border-[#d33682] text-[#d33682]',
+    }
   },
   floral: {
     name: 'Floral',
@@ -169,5 +243,13 @@ export const THEMES: Record<Theme, {
     border: 'border-[#e0e7d1]',
     mentionSelf: 'bg-[#f1f8e9] text-[#558b2f] border-[#c5e1a5]',
     mentionOther: 'bg-[#f9fbe7] text-[#6b8c6b] border-[#dcedc8] hover:bg-[#f0f4c3]',
+    specialColors: {
+      red: 'bg-[#ffebee] border-[#ffcdd2] text-[#b71c1c]',
+      orange: 'bg-[#fff3e0] border-[#ffe0b2] text-[#e65100]',
+      gold: 'bg-[#fff8e1] border-[#ffecb3] text-[#bf360c]',
+      green: 'bg-[#e8f5e9] border-[#c8e6c9] text-[#1b5e20]',
+      cyan: 'bg-[#e0f7fa] border-[#b2ebf2] text-[#006064]',
+      purple: 'bg-[#f3e5f5] border-[#e1bee7] text-[#4a148c]',
+    }
   }
 };
