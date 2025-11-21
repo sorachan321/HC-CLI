@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Menu, Settings, Send, Image as ImageIcon, X, Smile, DoorOpen, Loader2 } from 'lucide-react';
+import { Menu, Settings, Send, Image as ImageIcon, X, Smile, DoorOpen, Loader2, AtSign } from 'lucide-react';
 import useSound from 'use-sound'; 
 
 import Login from './components/Login';
@@ -27,6 +27,7 @@ function App() {
       blockedTrips: [],
       soundEnabled: true,
       enableEffects: true,
+      enableLatex: true,
     };
 
     try {
@@ -65,6 +66,11 @@ function App() {
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  // Mention Auto-complete State
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const [cursorPos, setCursorPos] = useState(0);
+
   const wsRef = useRef<WebSocket | null>(null);
   const pingIntervalRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -72,6 +78,7 @@ function App() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const stickerButtonRef = useRef<HTMLButtonElement>(null);
   const channelInputRef = useRef<HTMLInputElement>(null);
+  const mentionListRef = useRef<HTMLUListElement>(null);
 
   const theme = THEMES[settings.theme];
 
@@ -124,24 +131,113 @@ function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showStickerPicker]);
 
+  // Detect Mention Typing
+  useEffect(() => {
+    if (!textareaRef.current) return;
+
+    const checkMention = () => {
+       const text = inputText;
+       // Get text before cursor
+       const beforeCursor = text.slice(0, cursorPos);
+       
+       // Find the last @ in the text before cursor
+       const lastAt = beforeCursor.lastIndexOf('@');
+       
+       if (lastAt !== -1) {
+         // Check if there are any spaces between @ and cursor.
+         const query = beforeCursor.slice(lastAt + 1);
+         
+         // Valid mention triggers:
+         // 1. @ is at the very start of string
+         // 2. @ is preceded by whitespace (e.g. "hello @wor")
+         const precedingChar = lastAt > 0 ? beforeCursor[lastAt - 1] : ' ';
+         
+         if (!/\s/.test(query) && (/\s/.test(precedingChar) || lastAt === 0)) {
+           setMentionQuery(query);
+           return;
+         }
+       }
+       setMentionQuery(null);
+       setMentionIndex(0);
+    };
+
+    checkMention();
+  }, [inputText, cursorPos]);
+
+  // Auto-scroll mention list with improved behavior
+  useEffect(() => {
+    if (mentionListRef.current && mentionQuery !== null) {
+      const listNode = mentionListRef.current;
+      const activeItem = listNode.children[mentionIndex] as HTMLElement;
+      
+      if (activeItem) {
+        // block: 'nearest' works best for ensuring it just comes into view without jumping excessively
+        activeItem.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [mentionIndex]); 
+
+  // Reset scroll when query changes
+  useEffect(() => {
+    if (mentionQuery !== null) {
+      setMentionIndex(0);
+      if (mentionListRef.current) mentionListRef.current.scrollTop = 0;
+    }
+  }, [mentionQuery]);
+
+  // -- Logic --
+
+  const filteredMentionUsers = useMemo(() => {
+    if (mentionQuery === null) return [];
+    const lowerQuery = mentionQuery.toLowerCase();
+    // Sort users: fuzzy match start, then others.
+    return chatState.users
+      .filter(u => u.nick.toLowerCase().includes(lowerQuery) && u.nick !== chatState.nick)
+      .sort((a, b) => {
+        // Priority 1: Starts with query
+        const aStarts = a.nick.toLowerCase().startsWith(lowerQuery);
+        const bStarts = b.nick.toLowerCase().startsWith(lowerQuery);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+        // Priority 2: Alphabetical
+        return a.nick.localeCompare(b.nick);
+      });
+  }, [chatState.users, chatState.nick, mentionQuery]);
+
+  const insertMention = (nick: string) => {
+    if (mentionQuery === null) return;
+    
+    const beforeCursor = inputText.slice(0, cursorPos);
+    const afterCursor = inputText.slice(cursorPos);
+    const lastAt = beforeCursor.lastIndexOf('@');
+    
+    // Insert @Nick + Space (Plain Text, no Markdown)
+    const newText = beforeCursor.slice(0, lastAt) + `@${nick} ` + afterCursor;
+    setInputText(newText);
+    setMentionQuery(null);
+    
+    // We need to defer the focus slightly to ensure React renders the new state
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }, 10);
+  };
+
   // -- WebSocket Logic --
 
   const connect = (nick: string, channel: string, password?: string) => {
     setIsConnecting(true);
 
     if (wsRef.current) {
-      // CRITICAL FIX: Nullify the onclose handler of the OLD socket.
-      // This prevents it from firing 'onclose' and setting joined=false 
-      // while we are in the middle of switching to a new channel.
       wsRef.current.onclose = null;
       wsRef.current.close();
     }
 
-    // Reset state for new connection
     setChatState(prev => ({ 
       ...prev, 
       error: null,
-      joined: false, // Temporarily false, but isConnecting=true prevents Login screen
+      joined: false, 
       users: [],
       messages: [],
       connected: false
@@ -155,7 +251,6 @@ function App() {
       ws.send(JSON.stringify({ cmd: 'join', channel, nick, password: password || undefined }));
       setChatState(prev => ({ ...prev, connected: true }));
 
-      // Keep alive
       pingIntervalRef.current = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ cmd: 'ping' }));
@@ -198,7 +293,6 @@ function App() {
         messages: [...prev.messages, newMsg]
       }));
     } else if (data.cmd === 'onlineSet') {
-      // Successful join
       setIsConnecting(false);
       setChatState(prev => ({
         ...prev,
@@ -223,9 +317,8 @@ function App() {
     } else if (data.cmd === 'info') {
        addSystemMessage(`System: ${data.text}`);
     } else if (data.cmd === 'warn') {
-       // If we haven't joined yet, a warning usually means a login failure (e.g. Nick taken)
        if (!chatState.joined) {
-         setIsConnecting(false); // Stop loading so user sees the error on Login screen
+         setIsConnecting(false); 
          setChatState(prev => ({ ...prev, error: data.text }));
        } else {
          addSystemMessage(`Warning: ${data.text}`);
@@ -247,7 +340,7 @@ function App() {
     if (!inputText.trim() || !wsRef.current) return;
     wsRef.current.send(JSON.stringify({ cmd: 'chat', text: inputText }));
     setInputText('');
-    // Reset height handled by useEffect, but focusing is good
+    setMentionQuery(null);
     textareaRef.current?.focus();
   };
 
@@ -272,14 +365,12 @@ function App() {
 
     if (!targetChannel || !targetNick) return;
 
-    // Update storage
     try {
       localStorage.setItem('hc_saved_nick', targetNick);
       localStorage.setItem('hc_saved_channel', targetChannel);
       localStorage.setItem('hc_saved_password', targetPass);
     } catch (e) {}
 
-    // Connect to new channel
     connect(targetNick, targetChannel, targetPass);
     
     setChannelModalOpen(false);
@@ -352,6 +443,46 @@ function App() {
       }));
     }
   };
+  
+  // -- Input Handlers --
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (mentionQuery !== null && filteredMentionUsers.length > 0) {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionIndex(prev => (prev > 0 ? prev - 1 : filteredMentionUsers.length - 1));
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionIndex(prev => (prev < filteredMentionUsers.length - 1 ? prev + 1 : 0));
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        insertMention(filteredMentionUsers[mentionIndex].nick);
+        return;
+      }
+      if (e.key === 'Escape') {
+        setMentionQuery(null);
+        return;
+      }
+    }
+
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputText(e.target.value);
+    setCursorPos(e.target.selectionStart);
+  };
+  
+  const handleInputSelect = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+    setCursorPos(e.currentTarget.selectionStart);
+  };
 
   // -- Filtering --
 
@@ -363,9 +494,15 @@ function App() {
     });
   }, [chatState.messages, settings.blockedNicks, settings.blockedTrips]);
 
+  // Ensure mentionIndex is valid when list changes
+  useEffect(() => {
+    if (filteredMentionUsers.length > 0 && mentionIndex >= filteredMentionUsers.length) {
+      setMentionIndex(0);
+    }
+  }, [filteredMentionUsers.length]);
+
   // -- Render --
 
-  // Show Loading Screen when switching channels
   if (isConnecting) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${theme.bg} ${theme.fg} relative overflow-hidden`}>
@@ -467,6 +604,7 @@ function App() {
               msg={msg} 
               isMe={msg.nick === chatState.nick} 
               settings={settings}
+              currentUsers={chatState.users}
               onReply={handleReply}
               onMention={handleMention}
               onBlockNick={handleBlockNick}
@@ -477,7 +615,50 @@ function App() {
         </div>
 
         {/* Input Area */}
-        <div className={`p-4 border-t ${theme.border} ${theme.sidebarBg}`}>
+        <div className={`p-4 border-t ${theme.border} ${theme.sidebarBg} relative`}>
+          
+          {/* Mention Popover */}
+          {mentionQuery !== null && filteredMentionUsers.length > 0 && (
+             <div className={`
+               absolute bottom-full left-4 mb-2 w-64 
+               rounded-lg shadow-2xl border 
+               ${settings.theme === 'light' || settings.theme === 'floral' || settings.theme === 'solalight' ? 'bg-white border-gray-200' : 'bg-slate-800 border-slate-700'}
+               overflow-hidden z-50 animate-in slide-in-from-bottom-2 duration-200
+             `}>
+                <div className={`px-3 py-2 text-xs font-bold uppercase tracking-wider opacity-70 border-b ${settings.theme.includes('light') ? 'border-gray-100' : 'border-white/10'}`}>
+                  Users matching "@{mentionQuery}"
+                </div>
+                <ul className="max-h-48 overflow-y-auto py-1" ref={mentionListRef}>
+                   {filteredMentionUsers.map((user, idx) => (
+                     <li 
+                       key={user.nick}
+                       onClick={() => insertMention(user.nick)}
+                       className={`
+                         px-3 py-2 cursor-pointer flex items-center gap-3 text-sm transition-all
+                         ${idx === mentionIndex 
+                           ? 'bg-blue-600 text-white' 
+                           : `hover:bg-black/5 dark:hover:bg-white/5 ${theme.fg}`}
+                       `}
+                     >
+                        <div className={`
+                          w-2 h-2 rounded-full shrink-0
+                          ${idx === mentionIndex ? 'bg-white' : 'bg-green-500'}
+                        `} />
+                        <span className="font-medium truncate">{user.nick}</span>
+                        {user.trip && (
+                          <span className={`
+                            text-xs opacity-50 ml-auto font-mono 
+                            ${idx === mentionIndex ? 'text-blue-200' : ''}
+                          `}>
+                            {user.trip}
+                          </span>
+                        )}
+                     </li>
+                   ))}
+                </ul>
+             </div>
+          )}
+
           {uploadError && (
              <div className="text-red-500 text-xs mb-2 animate-pulse">{uploadError}</div>
           )}
@@ -523,13 +704,9 @@ function App() {
               ref={textareaRef}
               id="chat-input"
               value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                }
-              }}
+              onChange={handleInputChange}
+              onSelect={handleInputSelect}
+              onKeyDown={handleKeyDown}
               placeholder={`Message ?${chatState.channel}...`}
               className={`flex-1 bg-transparent border-none focus:ring-0 resize-none py-2 px-2 ${theme.inputFg} placeholder-opacity-50 max-h-32 overflow-y-auto`}
               rows={1}
@@ -543,7 +720,7 @@ function App() {
             </button>
           </div>
           <div className="text-xs opacity-40 mt-2 text-center">
-            Markdown supported. Shift+Enter for new line.
+            Markdown supported. Shift+Enter for new line. @ to mention.
           </div>
         </div>
 

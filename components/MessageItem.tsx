@@ -1,23 +1,57 @@
-import React, { useState } from 'react';
+
+import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { format } from 'date-fns';
-import { MoreVertical, Reply, Ban, Hash, Shield, ShieldAlert, User as UserIcon } from 'lucide-react';
-import { HackChatMessage, AppSettings } from '../types';
+import { MoreVertical, Reply, Ban, Hash, Shield, ShieldAlert, User as UserIcon, AtSign } from 'lucide-react';
+import { HackChatMessage, AppSettings, User } from '../types';
 import { THEMES } from '../constants';
 
 interface MessageItemProps {
   msg: HackChatMessage;
   isMe: boolean;
   settings: AppSettings;
+  currentUsers: User[];
   onReply: (nick: string, text: string) => void;
   onMention: (nick: string) => void;
   onBlockNick: (nick: string) => void;
   onBlockTrip: (trip: string) => void;
 }
 
-const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, onReply, onMention, onBlockNick, onBlockTrip }) => {
-  const [showActions, setShowActions] = useState(false);
+// --- Mention Pill Component ---
+const MentionPill = ({ 
+  nick, 
+  isMe, 
+  themeSettings, 
+  onClick 
+}: { 
+  nick: string, 
+  isMe: boolean, 
+  themeSettings: typeof THEMES.light,
+  onClick: (e: any) => void 
+}) => {
+  
+  const baseClasses = "inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-bold cursor-pointer select-none align-baseline transition-all duration-200 hover:scale-105 active:scale-95 mx-0.5 shadow-sm border";
+  
+  // Use the theme-specific mention styles defined in constants.ts
+  const colors = isMe ? themeSettings.mentionSelf : themeSettings.mentionOther;
+
+  return (
+    <span 
+      onClick={onClick}
+      className={`${baseClasses} ${colors}`}
+      title={`Mentioned: ${nick}`}
+    >
+      <AtSign className="w-3 h-3 opacity-70 stroke-[3]" />
+      <span className="relative top-[0.5px]">{nick}</span>
+    </span>
+  );
+};
+
+const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, currentUsers, onReply, onMention, onBlockNick, onBlockTrip }) => {
+  const [showActions, setShowActions] = React.useState(false);
   const theme = THEMES[settings.theme];
 
   const formattedTime = format(new Date(msg.time), 'HH:mm');
@@ -26,6 +60,106 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, onReply,
     if (msg.admin) return <ShieldAlert className="w-4 h-4 text-red-500" />;
     if (msg.mod) return <Shield className="w-4 h-4 text-green-500" />;
     return <UserIcon className="w-4 h-4 opacity-50" />;
+  };
+
+  const remarkPlugins = [remarkGfm];
+  if (settings.enableLatex) remarkPlugins.push(remarkMath);
+  
+  const rehypePlugins: any[] = [];
+  if (settings.enableLatex) rehypePlugins.push(rehypeKatex);
+
+  /**
+   * Parses a plain string, detects @Mentions that match current users,
+   * and replaces them with the MentionPill component.
+   */
+  const parseTextForMentions = (text: string) => {
+    // If no users or empty text, return as is
+    if (!text || !text.includes('@')) return text;
+    
+    // We scan for any word starting with @
+    // Regex: @ followed by one or more non-whitespace characters, 
+    // followed by a word boundary (space, punctuation, or end of string)
+    // We capture the name part.
+    const pattern = /@(\S+?)(?=[.,!?:;]|\s|$)/g;
+    
+    const parts = text.split(pattern);
+    if (parts.length === 1) return text;
+
+    const result: React.ReactNode[] = [];
+    
+    // split with capturing group results in: [ "Hello ", "User", " how are you" ]
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      
+      // Even indices are always the text surrounding the captures
+      if (i % 2 === 0) {
+        if (part) result.push(part);
+      } 
+      // Odd indices are the captured nicknames
+      else {
+        // Check if this captured "nick" exists in current users (case-insensitive check usually better for UX)
+        // But standard hack.chat usually implies exact case. Let's do exact match for highlighting to avoid false positives.
+        const isValidUser = currentUsers.some(u => u.nick === part);
+
+        if (isValidUser) {
+          result.push(
+            <MentionPill 
+              key={`mention-${i}`}
+              nick={part} 
+              isMe={isMe} 
+              themeSettings={theme}
+              onClick={(e) => { e.stopPropagation(); onMention(part); }} 
+            />
+          );
+        } else {
+          // If not a valid user, just render text @User
+          result.push(`@${part}`);
+        }
+      }
+    }
+    return result;
+  };
+
+  // Custom renderer to intercept text nodes in common block elements
+  const components = {
+    p: ({ children }: any) => (
+      <p className="mb-1 last:mb-0">
+        {React.Children.map(children, child => {
+          if (typeof child === 'string') return parseTextForMentions(child);
+          return child;
+        })}
+      </p>
+    ),
+    li: ({ children }: any) => (
+      <li>
+        {React.Children.map(children, child => {
+          if (typeof child === 'string') return parseTextForMentions(child);
+          return child;
+        })}
+      </li>
+    ),
+    strong: ({ children }: any) => (
+      <strong>
+        {React.Children.map(children, child => {
+           if (typeof child === 'string') return parseTextForMentions(child);
+           return child;
+        })}
+      </strong>
+    ),
+    em: ({ children }: any) => (
+      <em>
+        {React.Children.map(children, child => {
+           if (typeof child === 'string') return parseTextForMentions(child);
+           return child;
+        })}
+      </em>
+    ),
+    a: ({ href, children, ...props }: any) => {
+      const linkClass = isMe 
+        ? "text-white underline decoration-white/50 hover:decoration-white" 
+        : "text-blue-500 hover:underline";
+      return <a href={href} target="_blank" rel="noopener noreferrer" className={linkClass} {...props}>{children}</a>;
+    }
   };
 
   return (
@@ -47,14 +181,16 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, onReply,
           className={`relative p-3 ${isMe ? theme.bubbleSelf : theme.bubbleOther}`}
         >
           <div className={`markdown-body text-sm leading-relaxed break-words`}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
-              a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline" />
-            }}>
+            <ReactMarkdown 
+              remarkPlugins={remarkPlugins} 
+              rehypePlugins={rehypePlugins}
+              components={components}
+            >
               {msg.text}
             </ReactMarkdown>
           </div>
           
-          {/* Actions Trigger (Hidden by default, visible on hover) */}
+          {/* Actions Trigger */}
           {!isMe && (
             <button 
               onClick={() => setShowActions(!showActions)}

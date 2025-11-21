@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { X, Trash2, Image as ImageIcon, Palette, Shield, Volume2, Sparkles, Smile } from 'lucide-react';
+import { X, Trash2, Image as ImageIcon, Palette, Shield, Volume2, Sparkles, Smile, Calculator } from 'lucide-react';
 import { AppSettings, Theme } from '../types';
 import { THEMES } from '../constants';
 
@@ -77,7 +77,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                   className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500"
                 />
                 <div className="flex flex-col">
-                  <span className="font-medium">Enable notification sounds</span>
+                  <span className="font-medium flex items-center gap-2"><Volume2 className="w-4 h-4" /> Enable notification sounds</span>
                   <span className="text-xs opacity-60">Play a sound when messages arrive</span>
                 </div>
              </label>
@@ -90,8 +90,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                   className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500"
                 />
                 <div className="flex flex-col">
-                  <span className="font-medium">Enable visual effects</span>
+                  <span className="font-medium flex items-center gap-2"><Sparkles className="w-4 h-4" /> Enable visual effects</span>
                   <span className="text-xs opacity-60">Show background particles and animations</span>
+                </div>
+             </label>
+
+             <label className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-white/5 transition-colors">
+                <input 
+                  type="checkbox" 
+                  checked={settings.enableLatex}
+                  onChange={(e) => updateField('enableLatex', e.target.checked)}
+                  className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500"
+                />
+                <div className="flex flex-col">
+                  <span className="font-medium flex items-center gap-2"><Calculator className="w-4 h-4" /> Enable Math (LaTeX)</span>
+                  <span className="text-xs opacity-60">Render equations between $ symbols (e.g. $E=mc^2$)</span>
                 </div>
              </label>
             </div>

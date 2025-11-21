@@ -26,6 +26,7 @@ export interface AppSettings {
   blockedTrips: string[];
   soundEnabled: boolean;
   enableEffects: boolean;
+  enableLatex: boolean;
 }
 
 export interface ChatState {
