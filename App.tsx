@@ -307,7 +307,7 @@ function App() {
         messages: [...prev.messages, newMsg]
       }));
 
-      // Sound Logic
+      // Sound & Vibration Logic
       if (data.nick !== myNick) {
         const isSpecial = settings.specialUsers.some(u => 
           (u.nick && u.nick === data.nick) || 
@@ -315,10 +315,16 @@ function App() {
         );
         
         if (isSpecial) {
-          // Play special sound (prioritized)
-           if (settings.soundEnabled) playSpecial();
+           if (settings.soundEnabled) {
+             playSpecial();
+             // Double vibrate for special users: Vibrate 100ms, Pause 50ms, Vibrate 100ms
+             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+           }
         } else {
-           if (settings.soundEnabled) playNotify();
+           if (settings.soundEnabled) {
+             playNotify();
+             // Normal messages: Sound only, no vibration
+           }
         }
       }
 
@@ -499,10 +505,16 @@ function App() {
       }
     }
 
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Determine if Mobile
+    const isMobile = window.innerWidth < 768;
+
+    // Desktop: Enter sends message, Shift+Enter new line
+    // Mobile: Enter new line (default behavior), Send button required to send
+    if (!isMobile && e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
+    // On mobile, we let the default "Enter" behavior happen (which is new line in textarea)
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -645,7 +657,7 @@ function App() {
         </div>
 
         {/* Input Area */}
-        <div className={`p-4 border-t ${theme.border} ${theme.sidebarBg} relative`}>
+        <div className={`p-2 md:p-4 border-t ${theme.border} ${theme.sidebarBg} relative`}>
           
           {/* Mention Popover */}
           {mentionQuery !== null && filteredMentionUsers.length > 0 && (
@@ -692,7 +704,7 @@ function App() {
           {uploadError && (
              <div className="text-red-500 text-xs mb-2 animate-pulse">{uploadError}</div>
           )}
-          <div className={`flex items-end gap-2 rounded-xl border ${theme.border} ${theme.inputBg} p-2 transition-all focus-within:ring-1 focus-within:ring-blue-500/50 relative`}>
+          <div className={`flex items-end gap-1 md:gap-2 rounded-xl border ${theme.border} ${theme.inputBg} p-1.5 md:p-2 transition-all focus-within:ring-1 focus-within:ring-blue-500/50 relative`}>
             
             {/* Sticker/Emoji Button */}
             <div className="relative sticker-picker-container">
@@ -706,10 +718,10 @@ function App() {
                <button 
                  ref={stickerButtonRef}
                  onClick={() => setShowStickerPicker(!showStickerPicker)}
-                 className={`p-2 rounded-lg transition-colors ${theme.inputFg} hover:bg-white/10 h-10 w-10 flex items-center justify-center`}
+                 className={`p-1.5 md:p-2 rounded-lg transition-colors ${theme.inputFg} hover:bg-white/10 h-9 w-9 md:h-10 md:w-10 flex items-center justify-center`}
                  title="Emojis & GIFs"
                >
-                  <Smile className={`w-5 h-5 ${showStickerPicker ? 'text-blue-500' : ''}`} />
+                  <Smile className={`w-4 h-4 md:w-5 md:h-5 ${showStickerPicker ? 'text-blue-500' : ''}`} />
                </button>
             </div>
 
@@ -724,10 +736,10 @@ function App() {
             <button 
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
-              className={`p-2 rounded-lg transition-colors ${theme.inputFg} hover:bg-white/10 disabled:opacity-50 h-10 w-10 flex items-center justify-center`}
+              className={`p-1.5 md:p-2 rounded-lg transition-colors ${theme.inputFg} hover:bg-white/10 disabled:opacity-50 h-9 w-9 md:h-10 md:w-10 flex items-center justify-center`}
               title="Upload Image (ImgBB)"
             >
-               <ImageIcon className={`w-5 h-5 ${isUploading ? 'animate-spin' : ''}`} />
+               <ImageIcon className={`w-4 h-4 md:w-5 md:h-5 ${isUploading ? 'animate-spin' : ''}`} />
             </button>
 
             <textarea
@@ -738,18 +750,18 @@ function App() {
               onSelect={handleInputSelect}
               onKeyDown={handleKeyDown}
               placeholder={`Message ?${chatState.channel}...`}
-              className={`flex-1 bg-transparent border-none focus:ring-0 resize-none py-2 px-2 ${theme.inputFg} placeholder-opacity-50 max-h-32 overflow-y-auto`}
+              className={`flex-1 bg-transparent border-none focus:ring-0 resize-none py-1.5 px-1 md:py-2 md:px-2 ${theme.inputFg} placeholder-opacity-50 max-h-32 overflow-y-auto text-sm md:text-base`}
               rows={1}
             />
 
             <button 
               onClick={sendMessage}
-              className={`p-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors h-10 w-10 flex items-center justify-center shadow-lg`}
+              className={`p-1.5 md:p-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors h-9 w-9 md:h-10 md:w-10 flex items-center justify-center shadow-lg`}
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-4 h-4 md:w-5 md:h-5" />
             </button>
           </div>
-          <div className="text-xs opacity-40 mt-2 text-center">
+          <div className="hidden md:block text-xs opacity-40 mt-2 text-center">
             Markdown supported. Shift+Enter for new line. @ to mention.
           </div>
         </div>
