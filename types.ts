@@ -39,6 +39,7 @@ export interface AppSettings {
   soundEnabled: boolean;
   enableEffects: boolean;
   enableLatex: boolean;
+  autoReconnect: boolean; // New: Auto Reconnect logic
 }
 
 export interface ChatState {

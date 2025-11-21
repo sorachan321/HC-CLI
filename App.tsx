@@ -28,10 +28,11 @@ function App() {
       tenorApiKey: '',
       blockedNicks: [],
       blockedTrips: [],
-      specialUsers: [], // New
+      specialUsers: [], 
       soundEnabled: true,
       enableEffects: true,
       enableLatex: true,
+      autoReconnect: false, // Default to false
     };
 
     try {
@@ -85,6 +86,11 @@ function App() {
   const stickerButtonRef = useRef<HTMLButtonElement>(null);
   const channelInputRef = useRef<HTMLInputElement>(null);
   const mentionListRef = useRef<HTMLUListElement>(null);
+  
+  // Reconnect Logic Refs
+  const isManualDisconnect = useRef(false);
+  const lastConnectionParams = useRef<{nick: string, channel: string, password?: string} | null>(null);
+  const shouldRetryWithNewNick = useRef(false);
 
   const [playNotify] = useSound(NOTIFICATION_SOUND);
   // Higher pitch simulation for special sound
@@ -222,6 +228,10 @@ function App() {
 
   const connect = (nick: string, channel: string, password?: string) => {
     setIsConnecting(true);
+    
+    // Store current connection params for auto-reconnect
+    lastConnectionParams.current = { nick, channel, password };
+    isManualDisconnect.current = false; // Reset this flag on new connection attempt
 
     if (wsRef.current) {
       wsRef.current.onclose = null;
@@ -262,12 +272,35 @@ function App() {
       clearInterval(pingIntervalRef.current);
       setIsConnecting(false);
       setChatState(prev => ({ ...prev, connected: false, joined: false, users: [] }));
+
+      // Auto Reconnect Logic
+      if (!isManualDisconnect.current && settings.autoReconnect && lastConnectionParams.current) {
+        console.log('Auto-reconnecting...');
+        
+        if (shouldRetryWithNewNick.current) {
+          // Immediate retry if we flagged a nick change
+           shouldRetryWithNewNick.current = false;
+           const { nick, channel, password } = lastConnectionParams.current;
+           connect(nick, channel, password);
+        } else {
+           // Standard delay retry
+           setTimeout(() => {
+             if (!isManualDisconnect.current && lastConnectionParams.current) {
+               const { nick, channel, password } = lastConnectionParams.current;
+               connect(nick, channel, password);
+             }
+           }, 2000);
+        }
+      }
     };
 
     ws.onerror = (err) => {
       console.error('WS Error', err);
-      setIsConnecting(false);
-      setChatState(prev => ({ ...prev, error: 'Connection failed. Please check your internet or try again later.' }));
+      // Logic handled in onclose mostly, but we show error if no retry
+      if (!settings.autoReconnect) {
+        setIsConnecting(false);
+        setChatState(prev => ({ ...prev, error: 'Connection failed. Please check your internet or try again later.' }));
+      }
     };
   };
 
@@ -298,11 +331,9 @@ function App() {
         if (isSpecial) {
            if (settings.soundEnabled) {
              playSpecial();
-             // Double vibrate for special users only: Vibrate 100ms, Pause 50ms, Vibrate 100ms
              if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
            }
         } else {
-           // Normal messages: Sound only, NO vibration
            if (settings.soundEnabled) {
              playNotify();
            }
@@ -314,7 +345,7 @@ function App() {
       setChatState(prev => ({
         ...prev,
         joined: true,
-        nick: myNick,
+        nick: myNick, // Use the requested nick
         channel: myChannel,
         users: data.nicks.map((n: string) => ({ nick: n })),
         error: null
@@ -334,7 +365,18 @@ function App() {
     } else if (data.cmd === 'info') {
        addSystemMessage(`System: ${data.text}`);
     } else if (data.cmd === 'warn') {
-       if (!chatState.joined) {
+       // Special handling for "Username taken" (or similar variants)
+       const isNickTaken = data.text.toLowerCase().includes('nickname taken') || 
+                           data.text.toLowerCase().includes('username taken');
+
+       if (isNickTaken && !chatState.joined && settings.autoReconnect && lastConnectionParams.current) {
+         // Append 'A' to the nickname stored in lastConnectionParams
+         lastConnectionParams.current.nick += 'A';
+         shouldRetryWithNewNick.current = true;
+         // The server usually closes connection after this warn, triggering onclose -> connect
+         // If it doesn't close automatically, we force it via current execution flow ending
+         addSystemMessage(`Nickname taken. Retrying as ${lastConnectionParams.current.nick}...`);
+       } else if (!chatState.joined) {
          setIsConnecting(false); 
          setChatState(prev => ({ ...prev, error: data.text }));
        } else {
@@ -381,6 +423,9 @@ function App() {
     const targetPass = newPasswordInput;
 
     if (!targetChannel || !targetNick) return;
+
+    // Flag as manual disconnect so auto-reconnect doesn't trigger
+    isManualDisconnect.current = true;
 
     try {
       localStorage.setItem('hc_saved_nick', targetNick);
@@ -543,6 +588,11 @@ function App() {
           <div className="text-center">
             <h2 className="text-2xl font-bold mb-2">Connecting...</h2>
             <p className="opacity-60">Entering the matrix</p>
+            {settings.autoReconnect && lastConnectionParams.current && (
+              <p className="text-xs mt-2 opacity-50">
+                Attempting to join as {lastConnectionParams.current.nick}...
+              </p>
+            )}
           </div>
         </div>
       </div>

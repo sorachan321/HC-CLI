@@ -1,8 +1,7 @@
-
-
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { format } from 'date-fns';
@@ -74,7 +73,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, currentU
     return <UserIcon className="w-4 h-4 opacity-50" />;
   };
 
-  const remarkPlugins: any[] = [remarkGfm];
+  const remarkPlugins: any[] = [remarkGfm, remarkBreaks];
   if (settings.enableLatex) remarkPlugins.push(remarkMath);
   
   const rehypePlugins: any[] = [];
