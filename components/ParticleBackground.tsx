@@ -1,8 +1,6 @@
 
-
 import React, { useEffect, useRef } from 'react';
 import { Theme } from '../types';
-import { THEMES } from '../constants';
 
 interface ParticleBackgroundProps {
   themeName: Theme;
@@ -22,6 +20,7 @@ const ParticleBackground: React.FC<ParticleBackgroundProps> = ({ themeName }) =>
     let particles: any[] = [];
     
     const isFloral = themeName === 'floral';
+    const isChaos = themeName === 'd$ck';
 
     // Colors
     let particleColor = 'rgba(255, 255, 255, 0.1)';
@@ -29,6 +28,7 @@ const ParticleBackground: React.FC<ParticleBackgroundProps> = ({ themeName }) =>
     if (themeName === 'dark') particleColor = 'rgba(59, 130, 246, 0.15)';
     if (themeName === 'nebula') particleColor = 'rgba(232, 121, 249, 0.15)';
     if (themeName === 'synthwave') particleColor = 'rgba(255, 113, 206, 0.15)';
+    if (isChaos) particleColor = '#ff00ff'; // Base magenta for chaos
 
     const floralColors = [
       'rgba(255, 183, 178, 0.6)', // pastel red
@@ -59,6 +59,13 @@ const ParticleBackground: React.FC<ParticleBackgroundProps> = ({ themeName }) =>
         this.vx = (Math.random() - 0.5) * 0.5;
         this.vy = (Math.random() - 0.5) * 0.5;
         this.size = Math.random() * 2;
+        
+        // Chaos speedup
+        if (isChaos) {
+          this.vx *= 25;
+          this.vy *= 25;
+          this.size = Math.random() * 6 + 2;
+        }
       }
 
       update() {
@@ -67,11 +74,17 @@ const ParticleBackground: React.FC<ParticleBackgroundProps> = ({ themeName }) =>
 
         if (this.x < 0 || this.x > canvas!.width) this.vx *= -1;
         if (this.y < 0 || this.y > canvas!.height) this.vy *= -1;
+        
+        if (isChaos && Math.random() < 0.1) {
+          this.x = Math.random() * canvas!.width; // Teleport
+          this.vx = (Math.random() - 0.5) * 40; // Random violent speed change
+          this.vy = (Math.random() - 0.5) * 40;
+        }
       }
 
       draw() {
         if (!ctx) return;
-        ctx.fillStyle = particleColor;
+        ctx.fillStyle = isChaos ? `hsl(${Math.random() * 360}, 100%, 50%)` : particleColor;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fill();
@@ -134,6 +147,87 @@ const ParticleBackground: React.FC<ParticleBackgroundProps> = ({ themeName }) =>
         ctx.restore();
       }
     }
+    
+    // --- Chaos Glitch Rectangle ---
+    const POPUP_TYPES = ['error', 'warning', 'info', 'glitch', 'system'];
+    
+    class ChaosPopUp {
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+        life: number;
+        type: string;
+        vx: number;
+        vy: number;
+        color: string;
+        
+        constructor() {
+            this.x = Math.random() * canvas!.width;
+            this.y = Math.random() * canvas!.height;
+            this.w = Math.random() * 250 + 80;
+            this.h = Math.random() * 120 + 40;
+            this.life = Math.random() * 15 + 5; // Short life
+            this.type = POPUP_TYPES[Math.floor(Math.random() * POPUP_TYPES.length)];
+            
+            // Extreme Movement
+            this.vx = (Math.random() - 0.5) * 30;
+            this.vy = (Math.random() - 0.5) * 30;
+            
+            // Rainbow colors
+            this.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+        }
+        
+        update() {
+            this.life--;
+            this.x += this.vx;
+            this.y += this.vy;
+            // Jitter
+            this.x += (Math.random() - 0.5) * 10;
+            this.y += (Math.random() - 0.5) * 10;
+        }
+        
+        draw() {
+            if (!ctx || this.life <= 0) return;
+            
+            // Background
+            ctx.fillStyle = '#000';
+            ctx.fillRect(this.x, this.y, this.w, this.h);
+            
+            // Border
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = this.color;
+            ctx.strokeRect(this.x, this.y, this.w, this.h);
+            
+            // Header
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x, this.y, this.w, 25);
+            
+            // Content simulation
+            ctx.fillStyle = this.color;
+            if (this.type === 'error') {
+               // Big X
+               ctx.beginPath();
+               ctx.moveTo(this.x + 20, this.y + 40);
+               ctx.lineTo(this.x + this.w - 20, this.y + this.h - 20);
+               ctx.moveTo(this.x + this.w - 20, this.y + 40);
+               ctx.lineTo(this.x + 20, this.y + this.h - 20);
+               ctx.stroke();
+            } else if (this.type === 'glitch') {
+               // Random noise bars
+               for(let i=0; i<5; i++) {
+                   ctx.fillRect(this.x + 10, this.y + 40 + (i*15), Math.random() * (this.w - 20), 10);
+               }
+            } else {
+               // Text lines
+               ctx.fillRect(this.x + 10, this.y + 40, this.w - 20, 5);
+               ctx.fillRect(this.x + 10, this.y + 55, this.w - 50, 5);
+               ctx.fillRect(this.x + 10, this.y + 70, this.w - 30, 5);
+            }
+        }
+    }
+    
+    let chaosPopups: ChaosPopUp[] = [];
 
     const initParticles = () => {
       particles = [];
@@ -150,16 +244,21 @@ const ParticleBackground: React.FC<ParticleBackgroundProps> = ({ themeName }) =>
 
     const animate = () => {
       if (!ctx || !canvas) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Chaos trail effect
+      if (isChaos) {
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // Stronger trails
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+      } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
 
       if (isFloral) {
-        // Floral Animation (Just update and draw, no connections)
         particles.forEach((p) => {
           p.update();
           p.draw();
         });
       } else {
-        // Network Animation (Update, Draw, Connect)
+        // Network Animation
         particles.forEach((particle, index) => {
           particle.update();
           particle.draw();
@@ -169,17 +268,53 @@ const ParticleBackground: React.FC<ParticleBackgroundProps> = ({ themeName }) =>
             const dx = particle.x - particles[j].x;
             const dy = particle.y - particles[j].y;
             const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            const threshold = isChaos ? 250 : 100;
 
-            if (distance < 100) {
+            if (distance < threshold) {
               ctx.beginPath();
-              ctx.strokeStyle = particleColor;
-              ctx.lineWidth = 0.5;
+              // Rainbow Lines for Chaos
+              if (isChaos) {
+                 ctx.strokeStyle = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                 ctx.lineWidth = Math.random() * 3;
+              } else {
+                 ctx.strokeStyle = particleColor;
+                 ctx.lineWidth = 0.5;
+              }
+              
               ctx.moveTo(particle.x, particle.y);
               ctx.lineTo(particles[j].x, particles[j].y);
               ctx.stroke();
             }
           }
         });
+        
+        // Extra chaos rendering
+        if (isChaos) {
+            // Random horizontal glitch lines
+            if (Math.random() > 0.3) { // Increased freq
+                const y = Math.random() * canvas.height;
+                const h = Math.random() * 20 + 2;
+                ctx.fillStyle = `hsla(${Math.random() * 360}, 100%, 50%, 0.7)`;
+                ctx.fillRect(0, y, canvas.width, h);
+            }
+            
+            // Vertical lines
+            if (Math.random() > 0.3) {
+                const x = Math.random() * canvas.width;
+                const w = Math.random() * 10 + 2;
+                ctx.fillStyle = `hsla(${Math.random() * 360}, 100%, 50%, 0.7)`;
+                ctx.fillRect(x, 0, w, canvas.height);
+            }
+            
+            // Popups
+            if (Math.random() < 0.15) chaosPopups.push(new ChaosPopUp()); // High spawn rate
+            chaosPopups = chaosPopups.filter(p => p.life > 0);
+            chaosPopups.forEach(p => {
+                p.update();
+                p.draw();
+            });
+        }
       }
 
       animationFrameId = requestAnimationFrame(animate);

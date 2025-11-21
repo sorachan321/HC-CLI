@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
@@ -54,7 +55,56 @@ const MentionPill: React.FC<MentionPillProps> = ({
 
 const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, currentUsers, onReply, onMention, onBlockNick, onBlockTrip }) => {
   const [showActions, setShowActions] = React.useState(false);
+  // Chaos mode state for text corruption
+  const [corruptedText, setCorruptedText] = React.useState(msg.text);
+
   const theme = THEMES[settings.theme];
+  const isChaos = settings.chaosMode && settings.theme === 'd$ck';
+
+  // --- Chaos Mode Logic: Probability Rolls ---
+  // We use useMemo with a dependency on msg.time/msg.text to ensure
+  // the roll is consistent for this specific message instance but random across messages.
+  const chaosEffects = useMemo(() => {
+    if (!isChaos) return null;
+
+    const seed = msg.time + msg.text.length;
+    // Simple pseudo-random generator seeded by message content to keep effects stable per message
+    const random = (offset: number) => {
+       const x = Math.sin(seed + offset) * 10000;
+       return x - Math.floor(x);
+    };
+
+    return {
+      reverse: random(1) < 0.30,    // 30% Reverse text order
+      dvdBounce: random(2) < 0.20,  // 20% DVD Logo bounce
+      rotate: random(3) < 0.10,     // 10% Slight rotation
+      swapSide: random(4) < 0.10,   // 10% Swap alignment
+      flash: random(5) < 0.30,      // 30% Random flashing
+    };
+  }, [isChaos, msg.time, msg.text]);
+
+  // --- Chaos Mode Logic: Text Corruption Interval ---
+  useEffect(() => {
+    if (!isChaos) {
+      setCorruptedText(msg.text);
+      return;
+    }
+
+    // High frequency corruption (50ms)
+    const interval = setInterval(() => {
+      const chars = msg.text.split('');
+      for (let i = 0; i < chars.length; i++) {
+        // Higher chance (25%) per char to swap with a glitch char each tick
+        if (Math.random() < 0.25) {
+           const glitchChars = '¡¢£¤¥¦§¨©ª«¬®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ';
+           chars[i] = glitchChars[Math.floor(Math.random() * glitchChars.length)];
+        }
+      }
+      setCorruptedText(chars.join(''));
+    }, 50); // Updated from 200ms to 50ms for extreme speed
+
+    return () => clearInterval(interval);
+  }, [isChaos, msg.text]);
 
   // Check if sender is a "Special User"
   const specialUser = React.useMemo(() => {
@@ -111,7 +161,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, currentU
       // Odd indices are the captured nicknames
       else {
         // Check if this captured "nick" exists in current users (case-insensitive check usually better for UX)
-        // But standard hack.chat usually implies exact case. Let's do exact match for highlighting to avoid false positives.
         const isValidUser = currentUsers.some(u => u.nick === part);
 
         if (isValidUser) {
@@ -180,13 +229,47 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, currentU
   if (isMe) {
     bubbleClass = theme.bubbleSelf;
   } else if (specialUser) {
-    // Override with special palette if it's a watched user
     bubbleClass = `${theme.specialColors[specialUser.color]} rounded-2xl rounded-tl-sm shadow-md border-2`;
   }
 
+  // --- Chaos Style Overrides ---
+  let containerAlignment = isMe ? 'justify-end' : 'justify-start';
+  let contentAlignment = isMe ? 'items-end' : 'items-start';
+  let chaosInlineStyles: React.CSSProperties = {};
+
+  if (chaosEffects) {
+    if (chaosEffects.swapSide) {
+      containerAlignment = isMe ? 'justify-start' : 'justify-end';
+      contentAlignment = isMe ? 'items-start' : 'items-end';
+    }
+    
+    if (chaosEffects.reverse) {
+      chaosInlineStyles.transform = 'scaleX(-1)';
+      // Note: We flip the text visually, but keep the bubble structure
+    }
+
+    if (chaosEffects.dvdBounce) {
+      // Add a strong shake class
+      bubbleClass += ' chaos-dvd';
+    }
+
+    if (chaosEffects.flash) {
+      bubbleClass += ' chaos-flash';
+    }
+
+    if (chaosEffects.rotate) {
+      bubbleClass += ' chaos-rotate';
+    }
+  }
+
+  // Base text to render (corrupted or normal)
+  const displayText = isChaos ? corruptedText : msg.text;
+
   return (
-    <div className={`group flex mb-4 ${isMe ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-[85%] md:max-w-[70%] relative flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+    <div className={`group flex mb-4 ${containerAlignment}`}>
+      <div 
+        className={`max-w-[85%] md:max-w-[70%] relative flex flex-col ${contentAlignment}`}
+      >
         
         {/* Meta Info */}
         <div className={`flex items-center gap-2 text-xs mb-1 opacity-70 ${isMe ? 'flex-row-reverse' : 'flex-row'} ${theme.fg}`}>
@@ -224,18 +307,21 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, currentU
         </div>
 
         {/* Bubble */}
-        <div className={`relative p-3 transition-colors ${bubbleClass}`}>
-          <div className={`markdown-body text-sm leading-relaxed break-words`}>
+        <div 
+          className={`relative p-3 transition-colors ${bubbleClass} ${isChaos ? 'chaos-shake' : ''}`}
+          style={chaosInlineStyles}
+        >
+          <div className={`markdown-body text-sm leading-relaxed break-words ${isChaos ? 'chaos-text font-mono' : ''}`}>
             <ReactMarkdown 
               remarkPlugins={remarkPlugins} 
               rehypePlugins={rehypePlugins}
               components={components}
             >
-              {msg.text}
+              {displayText}
             </ReactMarkdown>
           </div>
           
-          {/* DESKTOP-ONLY Actions Trigger: Hidden on mobile (md:block), visible on hover */}
+          {/* DESKTOP-ONLY Actions Trigger */}
           {!isMe && (
             <button 
               onClick={() => setShowActions(!showActions)}
@@ -246,7 +332,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, currentU
           )}
         </div>
 
-        {/* Action Menu (Desktop context mainly, or if triggered) */}
+        {/* Action Menu */}
         {showActions && !isMe && (
           <div className={`absolute z-10 ${isMe ? 'right-full mr-2' : 'left-full ml-2'} top-0 bg-white dark:bg-slate-800 shadow-xl rounded-lg py-1 min-w-[140px] border border-gray-200 dark:border-slate-700 animate-in fade-in zoom-in-95 duration-200`}>
             <button 

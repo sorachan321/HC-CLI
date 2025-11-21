@@ -25,6 +25,7 @@ function App() {
   const [settings, setSettings] = useState<AppSettings>(() => {
     const defaults: AppSettings = {
       theme: 'dark',
+      chaosMode: false, // Default off
       imageHost: 'imgbb', // Default to ImgBB
       imgbbApiKey: '',
       gyazoAccessToken: '',

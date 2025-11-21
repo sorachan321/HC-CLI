@@ -251,5 +251,28 @@ export const THEMES: Record<Theme, {
       cyan: 'bg-[#e0f7fa] border-[#b2ebf2] text-[#006064]',
       purple: 'bg-[#f3e5f5] border-[#e1bee7] text-[#4a148c]',
     }
+  },
+  'd$ck': {
+    name: 'D$CK (INSANE)',
+    bg: 'bg-black',
+    fg: 'text-[#00ff00]',
+    sidebarBg: 'bg-black',
+    sidebarFg: 'text-[#ff00ff]',
+    inputBg: 'bg-black',
+    inputFg: 'text-[#00ffff]',
+    accent: 'text-[#ffff00]',
+    bubbleSelf: 'bg-[#000] text-[#00ff00] border-2 border-[#00ff00] shadow-[4px_4px_0px_#ff00ff]',
+    bubbleOther: 'bg-[#000] text-[#00ffff] border-2 border-[#00ffff] shadow-[-4px_4px_0px_#ffff00]',
+    border: 'border-[#ff0000]',
+    mentionSelf: 'bg-[#ff00ff] text-black border-[#00ff00]',
+    mentionOther: 'bg-[#00ffff] text-black border-[#ffff00]',
+    specialColors: {
+      red: 'bg-black border-2 border-[#ff0000] text-[#ff0000] shadow-[2px_2px_0px_white]',
+      orange: 'bg-black border-2 border-[#ff5500] text-[#ff5500] shadow-[2px_2px_0px_white]',
+      gold: 'bg-black border-2 border-[#ffff00] text-[#ffff00] shadow-[2px_2px_0px_white]',
+      green: 'bg-black border-2 border-[#00ff00] text-[#00ff00] shadow-[2px_2px_0px_white]',
+      cyan: 'bg-black border-2 border-[#00ffff] text-[#00ffff] shadow-[2px_2px_0px_white]',
+      purple: 'bg-black border-2 border-[#ff00ff] text-[#ff00ff] shadow-[2px_2px_0px_white]',
+    }
   }
 };

@@ -17,7 +17,7 @@ export interface User {
   uType?: 'user' | 'mod' | 'admin';
 }
 
-export type Theme = 'light' | 'dark' | 'hacker' | 'nebula' | 'dracula' | 'nord' | 'synthwave' | 'c64' | 'solalight' | 'floral';
+export type Theme = 'light' | 'dark' | 'hacker' | 'nebula' | 'dracula' | 'nord' | 'synthwave' | 'c64' | 'solalight' | 'floral' | 'd$ck';
 
 export type SpecialColor = 'red' | 'orange' | 'gold' | 'green' | 'cyan' | 'purple';
 
@@ -31,6 +31,7 @@ export interface SpecialUser {
 
 export interface AppSettings {
   theme: Theme;
+  chaosMode: boolean; // New: Enables the insanity logic
   imageHost: 'imgbb' | 'gyazo'; // New: Selectable image host
   imgbbApiKey: string;
   gyazoAccessToken: string; // New: Gyazo API Token

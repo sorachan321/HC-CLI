@@ -1,7 +1,7 @@
 
 
 import React, { useState } from 'react';
-import { X, Trash2, Image as ImageIcon, Palette, Shield, Volume2, Sparkles, Smile, Calculator, Star, Plus, RefreshCw, Check } from 'lucide-react';
+import { X, Trash2, Image as ImageIcon, Palette, Shield, Volume2, Sparkles, Smile, Calculator, Star, Plus, RefreshCw, Check, AlertTriangle, Zap } from 'lucide-react';
 import { AppSettings, Theme, SpecialColor, SpecialUser } from '../types';
 import { THEMES } from '../constants';
 
@@ -24,8 +24,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
   const [newSpecialLabel, setNewSpecialLabel] = useState('');
   const [newSpecialColor, setNewSpecialColor] = useState<SpecialColor>('gold');
 
+  // Epilespy Warning State
+  const [showChaosWarning, setShowChaosWarning] = useState(false);
+
   const updateField = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     onUpdateSettings({ ...settings, [key]: value });
+  };
+
+  const handleThemeSelect = (themeKey: Theme) => {
+    if (themeKey === 'd$ck') {
+      setShowChaosWarning(true);
+    } else {
+      onUpdateSettings({ ...settings, theme: themeKey, chaosMode: false });
+    }
+  };
+
+  const confirmChaosMode = () => {
+    onUpdateSettings({ ...settings, theme: 'd$ck', chaosMode: true });
+    setShowChaosWarning(false);
   };
 
   const removeBlockedNick = (nick: string) => {
@@ -68,6 +84,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      {/* Main Modal */}
       <div className={`w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col rounded-xl shadow-2xl ${activeTheme.sidebarBg} ${activeTheme.fg} border ${activeTheme.border}`}>
         
         {/* Header */}
@@ -105,10 +122,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                   {(Object.keys(THEMES) as Theme[]).map((themeKey) => (
                     <button
                       key={themeKey}
-                      onClick={() => updateField('theme', themeKey)}
-                      className={`p-4 rounded-lg border-2 transition-all ${settings.theme === themeKey ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-transparent hover:border-gray-500'} ${THEMES[themeKey].bg}`}
+                      onClick={() => handleThemeSelect(themeKey)}
+                      className={`p-4 rounded-lg border-2 transition-all overflow-hidden relative ${settings.theme === themeKey ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-transparent hover:border-gray-500'} ${THEMES[themeKey].bg}`}
                     >
-                      <div className={`text-center font-medium ${THEMES[themeKey].fg}`}>{THEMES[themeKey].name}</div>
+                      <div className={`text-center font-medium relative z-10 ${THEMES[themeKey].fg}`}>
+                         {THEMES[themeKey].name}
+                         {themeKey === 'd$ck' && <Zap className="w-3 h-3 inline ml-1 text-yellow-400 animate-pulse" />}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -408,6 +428,39 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         </div>
 
       </div>
+      
+      {/* CHAOS WARNING OVERLAY */}
+      {showChaosWarning && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/90 backdrop-blur-lg">
+           <div className="max-w-md w-full bg-red-900/20 border-2 border-red-500 p-8 rounded-lg shadow-[0_0_50px_rgba(255,0,0,0.5)] animate-pulse">
+              <div className="flex flex-col items-center text-center">
+                 <AlertTriangle className="w-16 h-16 text-red-500 mb-6" />
+                 <h2 className="text-3xl font-black text-red-500 mb-4 uppercase tracking-widest">WARNING</h2>
+                 <p className="text-white font-bold mb-4 text-lg">PHOTOSENSITIVE EPILEPSY WARNING</p>
+                 <p className="text-red-200 mb-8">
+                   The "D$CK" theme contains intense flashing lights, rapid color shifts, and shaking animations. 
+                   <br/><br/>
+                   <strong>DO NOT ENABLE</strong> if you have a history of epilepsy or seizures.
+                 </p>
+                 
+                 <div className="flex flex-col w-full gap-3">
+                   <button 
+                     onClick={confirmChaosMode}
+                     className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-wider rounded border border-red-400 shadow-lg hover:scale-105 transition-transform"
+                   >
+                     I Understand the Risks - Enable
+                   </button>
+                   <button 
+                     onClick={() => setShowChaosWarning(false)}
+                     className="w-full py-3 bg-transparent hover:bg-white/10 text-white opacity-70 hover:opacity-100 font-medium"
+                   >
+                     Cancel
+                   </button>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 };
