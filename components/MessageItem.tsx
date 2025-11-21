@@ -21,16 +21,18 @@ interface MessageItemProps {
 }
 
 // --- Mention Pill Component ---
-const MentionPill = ({ 
+interface MentionPillProps {
+  nick: string;
+  isMe: boolean;
+  themeSettings: typeof THEMES.light;
+  onClick: (e: React.MouseEvent) => void;
+}
+
+const MentionPill: React.FC<MentionPillProps> = ({ 
   nick, 
   isMe, 
   themeSettings, 
   onClick 
-}: { 
-  nick: string, 
-  isMe: boolean, 
-  themeSettings: typeof THEMES.light,
-  onClick: (e: any) => void 
 }) => {
   
   const baseClasses = "inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-bold cursor-pointer select-none align-baseline transition-all duration-200 hover:scale-105 active:scale-95 mx-0.5 shadow-sm border";

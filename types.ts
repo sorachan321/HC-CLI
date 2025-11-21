@@ -31,7 +31,9 @@ export interface SpecialUser {
 
 export interface AppSettings {
   theme: Theme;
+  imageHost: 'imgbb' | 'gyazo'; // New: Selectable image host
   imgbbApiKey: string;
+  gyazoAccessToken: string; // New: Gyazo API Token
   tenorApiKey: string; // New for GIF search
   blockedNicks: string[];
   blockedTrips: string[];

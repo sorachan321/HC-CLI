@@ -1,7 +1,7 @@
 
 
 import React, { useState } from 'react';
-import { X, Trash2, Image as ImageIcon, Palette, Shield, Volume2, Sparkles, Smile, Calculator, Star, Plus, RefreshCw } from 'lucide-react';
+import { X, Trash2, Image as ImageIcon, Palette, Shield, Volume2, Sparkles, Smile, Calculator, Star, Plus, RefreshCw, Check } from 'lucide-react';
 import { AppSettings, Theme, SpecialColor, SpecialUser } from '../types';
 import { THEMES } from '../constants';
 
@@ -180,18 +180,54 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                   <ImageIcon className="w-5 h-5" /> External APIs
                 </h3>
                 
-                {/* ImgBB */}
+                {/* Image Host Selection */}
                 <div className="space-y-2 mb-4">
-                  <label className="block text-sm font-medium opacity-80">ImgBB API Key (Image Upload)</label>
-                  <p className="text-xs opacity-60 mb-1">Get key from <a href="https://api.imgbb.com/" target="_blank" rel="noreferrer" className="text-blue-500 underline">api.imgbb.com</a></p>
-                  <input
-                    type="text"
-                    value={settings.imgbbApiKey}
-                    onChange={(e) => updateField('imgbbApiKey', e.target.value)}
-                    placeholder="e.g. 4a8b..."
-                    className={`w-full px-4 py-2 rounded-lg ${activeTheme.inputBg} ${activeTheme.inputFg} border ${activeTheme.border} focus:ring-2 focus:ring-blue-500 focus:outline-none`}
-                  />
+                  <label className="block text-sm font-medium opacity-80">Default Image Host</label>
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={() => updateField('imageHost', 'imgbb')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${settings.imageHost === 'imgbb' ? 'bg-blue-600/20 border-blue-500' : `border-transparent hover:bg-white/5`}`}
+                    >
+                      {settings.imageHost === 'imgbb' && <Check className="w-4 h-4 text-blue-500" />} ImgBB
+                    </button>
+                    <button 
+                      onClick={() => updateField('imageHost', 'gyazo')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${settings.imageHost === 'gyazo' ? 'bg-blue-600/20 border-blue-500' : `border-transparent hover:bg-white/5`}`}
+                    >
+                      {settings.imageHost === 'gyazo' && <Check className="w-4 h-4 text-blue-500" />} Gyazo
+                    </button>
+                  </div>
                 </div>
+
+                {/* ImgBB API Key - Only show if selected */}
+                {settings.imageHost === 'imgbb' && (
+                  <div className="space-y-2 mb-4 animate-in fade-in slide-in-from-top-2">
+                    <label className="block text-sm font-medium opacity-80">ImgBB API Key</label>
+                    <p className="text-xs opacity-60 mb-1">Get key from <a href="https://api.imgbb.com/" target="_blank" rel="noreferrer" className="text-blue-500 underline">api.imgbb.com</a></p>
+                    <input
+                      type="text"
+                      value={settings.imgbbApiKey}
+                      onChange={(e) => updateField('imgbbApiKey', e.target.value)}
+                      placeholder="e.g. 4a8b..."
+                      className={`w-full px-4 py-2 rounded-lg ${activeTheme.inputBg} ${activeTheme.inputFg} border ${activeTheme.border} focus:ring-2 focus:ring-blue-500 focus:outline-none`}
+                    />
+                  </div>
+                )}
+
+                {/* Gyazo API Key - Only show if selected */}
+                {settings.imageHost === 'gyazo' && (
+                  <div className="space-y-2 mb-4 animate-in fade-in slide-in-from-top-2">
+                    <label className="block text-sm font-medium opacity-80">Gyazo Access Token</label>
+                    <p className="text-xs opacity-60 mb-1">Get token from <a href="https://gyazo.com/api" target="_blank" rel="noreferrer" className="text-blue-500 underline">gyazo.com/api</a></p>
+                    <input
+                      type="text"
+                      value={settings.gyazoAccessToken || ''}
+                      onChange={(e) => updateField('gyazoAccessToken', e.target.value)}
+                      placeholder="e.g. Your access token"
+                      className={`w-full px-4 py-2 rounded-lg ${activeTheme.inputBg} ${activeTheme.inputFg} border ${activeTheme.border} focus:ring-2 focus:ring-blue-500 focus:outline-none`}
+                    />
+                  </div>
+                )}
 
                 {/* Tenor */}
                 <div className="space-y-2">

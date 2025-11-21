@@ -13,6 +13,7 @@ import StickerPicker from './components/StickerPicker';
 import { THEMES, DEFAULT_WS_URL } from './constants';
 import { AppSettings, ChatState, HackChatMessage, User } from './types';
 import { uploadToImgBB } from './services/imgbbService';
+import { uploadToGyazo } from './services/gyazoService';
 
 // Sound effect (generic pop) 
 const NOTIFICATION_SOUND = 'data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU';
@@ -24,7 +25,9 @@ function App() {
   const [settings, setSettings] = useState<AppSettings>(() => {
     const defaults: AppSettings = {
       theme: 'dark',
+      imageHost: 'imgbb', // Default to ImgBB
       imgbbApiKey: '',
+      gyazoAccessToken: '',
       tenorApiKey: '',
       blockedNicks: [],
       blockedTrips: [],
@@ -32,7 +35,7 @@ function App() {
       soundEnabled: true,
       enableEffects: true,
       enableLatex: true,
-      autoReconnect: false, // Default to false
+      autoReconnect: false,
     };
 
     try {
@@ -444,8 +447,17 @@ function App() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!settings.imgbbApiKey) {
+    // Determine logic based on settings
+    const host = settings.imageHost || 'imgbb'; // fallback
+
+    if (host === 'imgbb' && !settings.imgbbApiKey) {
       setUploadError("Please set your ImgBB API Key in Settings first.");
+      setSettingsOpen(true);
+      return;
+    }
+
+    if (host === 'gyazo' && !settings.gyazoAccessToken) {
+      setUploadError("Please set your Gyazo Access Token in Settings first.");
       setSettingsOpen(true);
       return;
     }
@@ -454,7 +466,12 @@ function App() {
     setUploadError(null);
 
     try {
-      const url = await uploadToImgBB(file, settings.imgbbApiKey);
+      let url = '';
+      if (host === 'gyazo') {
+        url = await uploadToGyazo(file, settings.gyazoAccessToken);
+      } else {
+        url = await uploadToImgBB(file, settings.imgbbApiKey);
+      }
       setInputText(prev => `${prev} ![](${url}) `);
     } catch (err: any) {
       setUploadError(err.message || 'Upload failed');
@@ -463,7 +480,7 @@ function App() {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
-  }, [settings.imgbbApiKey]);
+  }, [settings.imageHost, settings.imgbbApiKey, settings.gyazoAccessToken]);
 
   const handleStickerSelect = useCallback((content: string) => {
     setInputText(prev => `${prev}${content} `);
@@ -771,7 +788,7 @@ function App() {
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
               className={`p-1 md:p-2 rounded-lg transition-colors ${theme.inputFg} hover:bg-white/10 disabled:opacity-50 h-8 w-8 md:h-10 md:w-10 flex items-center justify-center`}
-              title="Upload Image (ImgBB)"
+              title={`Upload Image (${settings.imageHost === 'gyazo' ? 'Gyazo' : 'ImgBB'})`}
             >
                <ImageIcon className={`w-4 h-4 md:w-5 md:h-5 ${isUploading ? 'animate-spin' : ''}`} />
             </button>
