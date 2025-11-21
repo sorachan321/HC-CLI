@@ -251,5 +251,28 @@ export const THEMES: Record<Theme, {
       cyan: 'bg-[#e0f7fa] border-[#b2ebf2] text-[#006064]',
       purple: 'bg-[#f3e5f5] border-[#e1bee7] text-[#4a148c]',
     }
+  },
+  chaos: {
+    name: 'D$CK',
+    bg: 'bg-black',
+    fg: 'text-white',
+    sidebarBg: 'bg-black',
+    sidebarFg: 'text-green-400',
+    inputBg: 'bg-zinc-900',
+    inputFg: 'text-white',
+    accent: 'text-red-500',
+    bubbleSelf: 'bg-transparent text-xl font-black tracking-widest animate-rainbow shadow-none border-none',
+    bubbleOther: 'bg-transparent text-xl font-black tracking-widest animate-rainbow shadow-none border-none',
+    border: 'border-red-600',
+    mentionSelf: 'bg-red-500 text-white animate-pulse',
+    mentionOther: 'bg-yellow-500 text-black animate-bounce',
+    specialColors: {
+      red: 'bg-transparent animate-rainbow',
+      orange: 'bg-transparent animate-rainbow',
+      gold: 'bg-transparent animate-rainbow',
+      green: 'bg-transparent animate-rainbow',
+      cyan: 'bg-transparent animate-rainbow',
+      purple: 'bg-transparent animate-rainbow',
+    }
   }
 };

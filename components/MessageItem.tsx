@@ -1,3 +1,4 @@
+
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -5,7 +6,7 @@ import remarkBreaks from 'remark-breaks';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { format } from 'date-fns';
-import { MoreVertical, Reply, Ban, Hash, Shield, ShieldAlert, User as UserIcon, AtSign, Star } from 'lucide-react';
+import { MoreVertical, Reply, Ban, Hash, Shield, ShieldAlert, User as UserIcon, AtSign, Star, AlertTriangle } from 'lucide-react';
 import { HackChatMessage, AppSettings, User } from '../types';
 import { THEMES } from '../constants';
 
@@ -72,6 +73,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, currentU
     if (specialUser) return <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 animate-pulse" />;
     if (msg.admin) return <ShieldAlert className="w-4 h-4 text-red-500" />;
     if (msg.mod) return <Shield className="w-4 h-4 text-green-500" />;
+    if (settings.theme === 'chaos' && settings.chaosMode === 'insanity') return <AlertTriangle className="w-4 h-4 text-red-500 animate-pulse" />;
     return <UserIcon className="w-4 h-4 opacity-50" />;
   };
 
@@ -180,18 +182,32 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, currentU
   if (isMe) {
     bubbleClass = theme.bubbleSelf;
   } else if (specialUser) {
-    // Override with special palette if it's a watched user
-    bubbleClass = `${theme.specialColors[specialUser.color]} rounded-2xl rounded-tl-sm shadow-md border-2`;
+    if (settings.theme !== 'chaos') {
+        bubbleClass = `${theme.specialColors[specialUser.color]} rounded-2xl rounded-tl-sm shadow-md border-2`;
+    }
   }
 
+  // Chaos Mode Overrides
+  if (settings.theme === 'chaos') {
+    if (settings.chaosMode === 'psychedelic') {
+      bubbleClass = isMe ? 'bubble-psychedelic-self' : 'bubble-psychedelic';
+    } else if (settings.chaosMode === 'insanity') {
+      bubbleClass = isMe ? 'bubble-insanity-self' : 'bubble-insanity';
+    }
+  }
+
+  // Additional container animation for Chaos theme
+  const containerClass = settings.theme === 'chaos' ? 'animate-shake' : '';
+  const textClass = (settings.theme === 'chaos' && settings.chaosMode === 'insanity') ? 'insanity-text-glitch' : '';
+
   return (
-    <div className={`group flex mb-4 ${isMe ? 'justify-end' : 'justify-start'}`}>
+    <div className={`group flex mb-4 ${isMe ? 'justify-end' : 'justify-start'} ${containerClass}`}>
       <div className={`max-w-[85%] md:max-w-[70%] relative flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
         
         {/* Meta Info */}
         <div className={`flex items-center gap-2 text-xs mb-1 opacity-70 ${isMe ? 'flex-row-reverse' : 'flex-row'} ${theme.fg}`}>
           {getRoleIcon()}
-          <span className="font-bold hover:underline cursor-pointer" onClick={() => onMention(msg.nick)}>
+          <span className={`font-bold hover:underline cursor-pointer ${textClass}`} onClick={() => onMention(msg.nick)}>
             {msg.nick}
           </span>
           {specialUser?.label && (
@@ -225,7 +241,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ msg, isMe, settings, currentU
 
         {/* Bubble */}
         <div className={`relative p-3 transition-colors ${bubbleClass}`}>
-          <div className={`markdown-body text-sm leading-relaxed break-words`}>
+          <div className={`markdown-body text-sm leading-relaxed break-words ${textClass}`}>
             <ReactMarkdown 
               remarkPlugins={remarkPlugins} 
               rehypePlugins={rehypePlugins}

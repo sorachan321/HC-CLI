@@ -1,3 +1,4 @@
+
 export const uploadToGyazo = async (file: File, accessToken: string): Promise<string> => {
   if (!accessToken) {
     throw new Error("Gyazo Access Token is missing");
@@ -7,7 +8,6 @@ export const uploadToGyazo = async (file: File, accessToken: string): Promise<st
   formData.append('imagedata', file);
   formData.append('access_token', accessToken);
 
-  // Note: Gyazo API may have strict CORS policies depending on the environment.
   const response = await fetch(`https://upload.gyazo.com/api/upload`, {
     method: 'POST',
     body: formData,
