@@ -1,0 +1,5 @@
+{
+  "name": "HC客户端",
+  "description": "A modern, feature-rich client for hack.chat with multiple themes, image uploading, and user moderation tools.",
+  "requestFramePermissions": []
+}
