@@ -21,6 +21,7 @@ export type Theme = 'light' | 'dark' | 'hacker' | 'nebula' | 'dracula' | 'nord' 
 export interface AppSettings {
   theme: Theme;
   imgbbApiKey: string;
+  tenorApiKey: string; // New for GIF search
   blockedNicks: string[];
   blockedTrips: string[];
   soundEnabled: boolean;

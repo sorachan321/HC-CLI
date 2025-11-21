@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { X, Trash2, Image as ImageIcon, Palette, Shield, Volume2, Sparkles } from 'lucide-react';
+import { X, Trash2, Image as ImageIcon, Palette, Shield, Volume2, Sparkles, Smile } from 'lucide-react';
 import { AppSettings, Theme } from '../types';
 import { THEMES } from '../constants';
 
@@ -96,20 +97,36 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
             </div>
           </section>
 
-          {/* Services */}
+          {/* Services / APIs */}
           <section>
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 opacity-90">
-              <ImageIcon className="w-5 h-5" /> Image Upload (ImgBB)
+              <ImageIcon className="w-5 h-5" /> External APIs
             </h3>
-            <div className="space-y-2">
-              <p className="text-sm opacity-70">
-                To enable image uploads, get a free API key from <a href="https://api.imgbb.com/" target="_blank" rel="noreferrer" className="text-blue-500 underline">api.imgbb.com</a>.
-              </p>
+            
+            {/* ImgBB */}
+            <div className="space-y-2 mb-4">
+              <label className="block text-sm font-medium opacity-80">ImgBB API Key (Image Upload)</label>
+              <p className="text-xs opacity-60 mb-1">Get key from <a href="https://api.imgbb.com/" target="_blank" rel="noreferrer" className="text-blue-500 underline">api.imgbb.com</a></p>
               <input
                 type="text"
                 value={settings.imgbbApiKey}
                 onChange={(e) => updateField('imgbbApiKey', e.target.value)}
-                placeholder="Enter your ImgBB Client API Key"
+                placeholder="e.g. 4a8b..."
+                className={`w-full px-4 py-2 rounded-lg ${activeTheme.inputBg} ${activeTheme.inputFg} border ${activeTheme.border} focus:ring-2 focus:ring-blue-500 focus:outline-none`}
+              />
+            </div>
+
+            {/* Tenor */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium opacity-80 flex items-center gap-2">
+                <Smile className="w-4 h-4" /> Tenor API Key (GIF Search)
+              </label>
+              <p className="text-xs opacity-60 mb-1">Get key from <a href="https://developers.google.com/tenor/guides/quickstart" target="_blank" rel="noreferrer" className="text-blue-500 underline">Tenor Developer Console</a></p>
+              <input
+                type="text"
+                value={settings.tenorApiKey || ''}
+                onChange={(e) => updateField('tenorApiKey', e.target.value)}
+                placeholder="e.g. LIVD..."
                 className={`w-full px-4 py-2 rounded-lg ${activeTheme.inputBg} ${activeTheme.inputFg} border ${activeTheme.border} focus:ring-2 focus:ring-blue-500 focus:outline-none`}
               />
             </div>

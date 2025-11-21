@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Menu, Settings, Send, Image as ImageIcon, X } from 'lucide-react';
+import { Menu, Settings, Send, Image as ImageIcon, X, Smile, DoorOpen } from 'lucide-react';
 import useSound from 'use-sound'; 
 
 import Login from './components/Login';
@@ -7,6 +8,7 @@ import MessageItem from './components/MessageItem';
 import SettingsModal from './components/SettingsModal';
 import UserList from './components/UserList';
 import ParticleBackground from './components/ParticleBackground';
+import StickerPicker from './components/StickerPicker';
 import { THEMES, DEFAULT_WS_URL } from './constants';
 import { AppSettings, ChatState, HackChatMessage, User } from './types';
 import { uploadToImgBB } from './services/imgbbService';
@@ -17,25 +19,24 @@ const NOTIFICATION_SOUND = 'data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAA
 function App() {
   // -- State --
   const [settings, setSettings] = useState<AppSettings>(() => {
+    const defaults: AppSettings = {
+      theme: 'dark',
+      imgbbApiKey: '',
+      tenorApiKey: '',
+      blockedNicks: [],
+      blockedTrips: [],
+      soundEnabled: true,
+      enableEffects: true,
+    };
+
     try {
       const saved = localStorage.getItem('hackchat_settings');
-      return saved ? JSON.parse(saved) : {
-        theme: 'dark',
-        imgbbApiKey: '',
-        blockedNicks: [],
-        blockedTrips: [],
-        soundEnabled: true,
-        enableEffects: true,
-      };
+      if (saved) {
+        return { ...defaults, ...JSON.parse(saved) }; // Merge to ensure new keys exist
+      }
+      return defaults;
     } catch {
-       return {
-        theme: 'dark',
-        imgbbApiKey: '',
-        blockedNicks: [],
-        blockedTrips: [],
-        soundEnabled: true,
-        enableEffects: true,
-      };
+       return defaults;
     }
   });
 
@@ -52,7 +53,15 @@ function App() {
   const [inputText, setInputText] = useState('');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
+  
+  // Channel Switch Modal State
+  const [isChannelModalOpen, setChannelModalOpen] = useState(false);
+  const [newChannelInput, setNewChannelInput] = useState('');
+  const [newNickInput, setNewNickInput] = useState('');
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+
   const [isUploading, setIsUploading] = useState(false);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -60,6 +69,8 @@ function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const stickerButtonRef = useRef<HTMLButtonElement>(null);
+  const channelInputRef = useRef<HTMLInputElement>(null);
 
   const theme = THEMES[settings.theme];
 
@@ -79,6 +90,13 @@ function App() {
     }
   }, [chatState.messages, chatState.joined]);
 
+  // Focus channel input when modal opens
+  useEffect(() => {
+    if (isChannelModalOpen && channelInputRef.current) {
+      channelInputRef.current.focus();
+    }
+  }, [isChannelModalOpen]);
+
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
@@ -86,6 +104,24 @@ function App() {
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 128) + 'px'; // Limit max height to ~128px
     }
   }, [inputText]);
+
+  // Close sticker picker on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        showStickerPicker &&
+        stickerButtonRef.current &&
+        !stickerButtonRef.current.contains(event.target as Node) &&
+        // Check if click is inside the picker
+        !(event.target as Element).closest('.sticker-picker-container')
+      ) {
+        setShowStickerPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showStickerPicker]);
 
   // -- WebSocket Logic --
 
@@ -202,6 +238,36 @@ function App() {
 
   // -- Actions --
 
+  const handleOpenJoinChannel = () => {
+    setNewNickInput(chatState.nick || localStorage.getItem('hc_saved_nick') || '');
+    setNewPasswordInput(localStorage.getItem('hc_saved_password') || '');
+    setNewChannelInput('');
+    setChannelModalOpen(true);
+  };
+
+  const handleSwitchChannel = (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetChannel = newChannelInput.trim();
+    const targetNick = newNickInput.trim();
+    const targetPass = newPasswordInput;
+
+    if (!targetChannel || !targetNick) return;
+
+    // Update storage
+    try {
+      localStorage.setItem('hc_saved_nick', targetNick);
+      localStorage.setItem('hc_saved_channel', targetChannel);
+      localStorage.setItem('hc_saved_password', targetPass);
+    } catch (e) {}
+
+    // Connect to new channel
+    connect(targetNick, targetChannel, targetPass);
+    
+    setChannelModalOpen(false);
+    setNewChannelInput('');
+    setSidebarOpen(false);
+  };
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -225,6 +291,12 @@ function App() {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  const handleStickerSelect = (content: string) => {
+    setInputText(prev => `${prev}${content} `);
+    setShowStickerPicker(false);
+    textareaRef.current?.focus();
   };
 
   const handleMention = (nick: string) => {
@@ -320,12 +392,18 @@ function App() {
           onBlockTrip={handleBlockTrip}
         />
 
-        <div className="p-4 border-t ${theme.border}">
+        <div className="p-4 border-t ${theme.border} flex flex-col gap-2">
           <button 
             onClick={() => setSettingsOpen(true)}
             className={`flex items-center gap-2 w-full px-3 py-2 rounded hover:bg-white/5 transition-colors text-sm font-medium`}
           >
             <Settings className="w-4 h-4" /> Settings
+          </button>
+          <button 
+            onClick={handleOpenJoinChannel}
+            className={`flex items-center gap-2 w-full px-3 py-2 rounded hover:bg-white/5 transition-colors text-sm font-medium text-blue-500`}
+          >
+            <DoorOpen className="w-4 h-4" /> Join Channel
           </button>
         </div>
       </div>
@@ -363,8 +441,28 @@ function App() {
           {uploadError && (
              <div className="text-red-500 text-xs mb-2 animate-pulse">{uploadError}</div>
           )}
-          <div className={`flex items-end gap-2 rounded-xl border ${theme.border} ${theme.inputBg} p-2 transition-all focus-within:ring-1 focus-within:ring-blue-500/50`}>
+          <div className={`flex items-end gap-2 rounded-xl border ${theme.border} ${theme.inputBg} p-2 transition-all focus-within:ring-1 focus-within:ring-blue-500/50 relative`}>
             
+            {/* Sticker/Emoji Button */}
+            <div className="relative sticker-picker-container">
+               {showStickerPicker && (
+                 <StickerPicker 
+                    settings={settings}
+                    onSelect={handleStickerSelect}
+                    onClose={() => setShowStickerPicker(false)}
+                 />
+               )}
+               <button 
+                 ref={stickerButtonRef}
+                 onClick={() => setShowStickerPicker(!showStickerPicker)}
+                 className={`p-2 rounded-lg transition-colors ${theme.inputFg} hover:bg-white/10 h-10 w-10 flex items-center justify-center`}
+                 title="Emojis & GIFs"
+               >
+                  <Smile className={`w-5 h-5 ${showStickerPicker ? 'text-blue-500' : ''}`} />
+               </button>
+            </div>
+
+            {/* Image Upload Button */}
             <input 
               type="file" 
               ref={fileInputRef}
@@ -411,7 +509,83 @@ function App() {
 
       </div>
 
-      {/* Modals */}
+      {/* Switch Channel Modal */}
+      {isChannelModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className={`w-full max-w-sm p-6 rounded-xl shadow-2xl ${theme.sidebarBg} ${theme.fg} border ${theme.border} scale-100 animate-in zoom-in-95 duration-200`}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <DoorOpen className="w-5 h-5" /> Join Channel
+              </h3>
+              <button onClick={() => setChannelModalOpen(false)} className="opacity-50 hover:opacity-100">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSwitchChannel} className="space-y-4">
+              {/* Nickname Input */}
+              <div>
+                <label className="block text-sm font-medium mb-1 opacity-80">Nickname</label>
+                <input
+                  type="text"
+                  required
+                  value={newNickInput}
+                  onChange={(e) => setNewNickInput(e.target.value)}
+                  placeholder="User"
+                  className={`w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${theme.inputBg} ${theme.inputFg} border ${theme.border}`}
+                />
+              </div>
+
+              {/* Password Input */}
+              <div>
+                <label className="block text-sm font-medium mb-1 opacity-80">Password (Optional)</label>
+                <input
+                  type="password"
+                  value={newPasswordInput}
+                  onChange={(e) => setNewPasswordInput(e.target.value)}
+                  placeholder="For registered nicks"
+                  className={`w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${theme.inputBg} ${theme.inputFg} border ${theme.border}`}
+                />
+              </div>
+
+              {/* Channel Input */}
+              <div>
+                <label className="block text-sm font-medium mb-1 opacity-80">Channel Name</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 opacity-50 font-mono">?</span>
+                  <input
+                    ref={channelInputRef}
+                    type="text"
+                    required
+                    value={newChannelInput}
+                    onChange={(e) => setNewChannelInput(e.target.value)}
+                    placeholder="programming"
+                    className={`w-full pl-7 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${theme.inputBg} ${theme.inputFg} border ${theme.border}`}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2">
+                 <button 
+                   type="button"
+                   onClick={() => setChannelModalOpen(false)}
+                   className="px-4 py-2 rounded-lg text-sm hover:bg-white/10 transition-colors opacity-80"
+                 >
+                   Cancel
+                 </button>
+                 <button 
+                   type="submit"
+                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors"
+                 >
+                   Join
+                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
       <SettingsModal 
         isOpen={isSettingsOpen} 
         onClose={() => setSettingsOpen(false)} 
