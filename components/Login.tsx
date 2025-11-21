@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
-import { LogIn } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { LogIn, AlertCircle } from 'lucide-react';
 import { THEMES } from '../constants';
 import { AppSettings } from '../types';
 
 interface LoginProps {
   onJoin: (nick: string, channel: string, password?: string) => void;
   settings: AppSettings;
+  error: string | null;
 }
 
-const Login: React.FC<LoginProps> = ({ onJoin, settings }) => {
-  const [nick, setNick] = useState('');
-  const [channel, setChannel] = useState('programming');
-  const [password, setPassword] = useState('');
+const Login: React.FC<LoginProps> = ({ onJoin, settings, error }) => {
+  // Initialize state from localStorage if available
+  const [nick, setNick] = useState(() => localStorage.getItem('hc_saved_nick') || '');
+  const [channel, setChannel] = useState(() => localStorage.getItem('hc_saved_channel') || 'programming');
+  const [password, setPassword] = useState(() => localStorage.getItem('hc_saved_password') || '');
 
   const theme = THEMES[settings.theme];
 
@@ -29,6 +31,14 @@ const Login: React.FC<LoginProps> = ({ onJoin, settings }) => {
           <h1 className={`text-3xl font-bold mb-2 ${theme.accent}`}>Hack.Chat Redux</h1>
           <p className="opacity-70">Enter the matrix</p>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-lg flex items-start gap-3 text-red-500 animate-in fade-in slide-in-from-top-2">
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <div className="text-sm font-medium">{error}</div>
+          </div>
+        )}
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>

@@ -75,12 +75,20 @@ function App() {
   // -- WebSocket Logic --
 
   const connect = (nick: string, channel: string, password?: string) => {
+    // Save credentials for next time
+    localStorage.setItem('hc_saved_nick', nick);
+    localStorage.setItem('hc_saved_channel', channel);
+    localStorage.setItem('hc_saved_password', password || '');
+
     if (wsRef.current) {
       wsRef.current.close();
     }
 
     const ws = new WebSocket(DEFAULT_WS_URL);
     wsRef.current = ws;
+
+    // Reset error state on new connection attempt
+    setChatState(prev => ({ ...prev, error: null }));
 
     ws.onopen = () => {
       console.log('Connected to WS');
@@ -108,7 +116,7 @@ function App() {
 
     ws.onerror = (err) => {
       console.error('WS Error', err);
-      setChatState(prev => ({ ...prev, error: 'Connection error occurred.' }));
+      setChatState(prev => ({ ...prev, error: 'Connection failed. Please check your internet or try again later.' }));
     };
   };
 
@@ -133,7 +141,8 @@ function App() {
         joined: true,
         nick: myNick,
         channel: myChannel,
-        users: data.nicks.map((n: string) => ({ nick: n }))
+        users: data.nicks.map((n: string) => ({ nick: n })),
+        error: null // Clear any previous errors if we successfully joined
       }));
     } else if (data.cmd === 'onlineAdd') {
       setChatState(prev => ({
@@ -150,7 +159,12 @@ function App() {
     } else if (data.cmd === 'info') {
        addSystemMessage(`System: ${data.text}`);
     } else if (data.cmd === 'warn') {
-       addSystemMessage(`Warning: ${data.text}`);
+       // If we haven't joined yet, a warning usually means a login failure (e.g. Nick taken)
+       if (!chatState.joined) {
+         setChatState(prev => ({ ...prev, error: data.text }));
+       } else {
+         addSystemMessage(`Warning: ${data.text}`);
+       }
     }
   };
 
@@ -251,7 +265,7 @@ function App() {
   // -- Render --
 
   if (!chatState.joined) {
-    return <Login onJoin={connect} settings={settings} />;
+    return <Login onJoin={connect} settings={settings} error={chatState.error} />;
   }
 
   return (
