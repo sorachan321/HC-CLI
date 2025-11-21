@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Menu, Settings, Send, Image as ImageIcon, X, Smile, DoorOpen } from 'lucide-react';
+import { Menu, Settings, Send, Image as ImageIcon, X, Smile, DoorOpen, Loader2 } from 'lucide-react';
 import useSound from 'use-sound'; 
 
 import Login from './components/Login';
@@ -53,6 +53,7 @@ function App() {
   const [inputText, setInputText] = useState('');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   
   // Channel Switch Modal State
   const [isChannelModalOpen, setChannelModalOpen] = useState(false);
@@ -126,20 +127,33 @@ function App() {
   // -- WebSocket Logic --
 
   const connect = (nick: string, channel: string, password?: string) => {
+    setIsConnecting(true);
+
     if (wsRef.current) {
+      // CRITICAL FIX: Nullify the onclose handler of the OLD socket.
+      // This prevents it from firing 'onclose' and setting joined=false 
+      // while we are in the middle of switching to a new channel.
+      wsRef.current.onclose = null;
       wsRef.current.close();
     }
+
+    // Reset state for new connection
+    setChatState(prev => ({ 
+      ...prev, 
+      error: null,
+      joined: false, // Temporarily false, but isConnecting=true prevents Login screen
+      users: [],
+      messages: [],
+      connected: false
+    }));
 
     const ws = new WebSocket(DEFAULT_WS_URL);
     wsRef.current = ws;
 
-    // Reset error state on new connection attempt
-    setChatState(prev => ({ ...prev, error: null }));
-
     ws.onopen = () => {
       console.log('Connected to WS');
       ws.send(JSON.stringify({ cmd: 'join', channel, nick, password: password || undefined }));
-      setChatState(prev => ({ ...prev, connected: true, error: null }));
+      setChatState(prev => ({ ...prev, connected: true }));
 
       // Keep alive
       pingIntervalRef.current = setInterval(() => {
@@ -157,11 +171,13 @@ function App() {
     ws.onclose = () => {
       console.log('Disconnected');
       clearInterval(pingIntervalRef.current);
+      setIsConnecting(false);
       setChatState(prev => ({ ...prev, connected: false, joined: false, users: [] }));
     };
 
     ws.onerror = (err) => {
       console.error('WS Error', err);
+      setIsConnecting(false);
       setChatState(prev => ({ ...prev, error: 'Connection failed. Please check your internet or try again later.' }));
     };
   };
@@ -182,13 +198,15 @@ function App() {
         messages: [...prev.messages, newMsg]
       }));
     } else if (data.cmd === 'onlineSet') {
+      // Successful join
+      setIsConnecting(false);
       setChatState(prev => ({
         ...prev,
         joined: true,
         nick: myNick,
         channel: myChannel,
         users: data.nicks.map((n: string) => ({ nick: n })),
-        error: null // Clear any previous errors if we successfully joined
+        error: null
       }));
     } else if (data.cmd === 'onlineAdd') {
       setChatState(prev => ({
@@ -207,6 +225,7 @@ function App() {
     } else if (data.cmd === 'warn') {
        // If we haven't joined yet, a warning usually means a login failure (e.g. Nick taken)
        if (!chatState.joined) {
+         setIsConnecting(false); // Stop loading so user sees the error on Login screen
          setChatState(prev => ({ ...prev, error: data.text }));
        } else {
          addSystemMessage(`Warning: ${data.text}`);
@@ -345,6 +364,27 @@ function App() {
   }, [chatState.messages, settings.blockedNicks, settings.blockedTrips]);
 
   // -- Render --
+
+  // Show Loading Screen when switching channels
+  if (isConnecting) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${theme.bg} ${theme.fg} relative overflow-hidden`}>
+        {settings.enableEffects && <ParticleBackground themeName={settings.theme} />}
+        <div className={`flex flex-col items-center gap-6 z-10 p-8 rounded-2xl bg-black/20 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-300`}>
+          <div className="relative">
+             <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+             <div className="absolute inset-0 flex items-center justify-center">
+               <Loader2 className="w-8 h-8 text-blue-500 animate-pulse" />
+             </div>
+          </div>
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-2">Connecting...</h2>
+            <p className="opacity-60">Entering the matrix</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!chatState.joined) {
     return <Login onJoin={connect} settings={settings} error={chatState.error} />;
