@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Menu, Settings, Send, Image as ImageIcon, X, Smile, DoorOpen, Loader2, AtSign, Globe } from 'lucide-react';
 import useSound from 'use-sound'; 
@@ -286,34 +284,42 @@ function App() {
         setIsConnecting(false);
         setChatState(prev => ({ ...prev, connected: false, joined: false, users: [] }));
 
-        // Auto Reconnect Logic
-        if (!isManualDisconnect.current && settings.autoReconnect && lastConnectionParams.current) {
-          console.log('Auto-reconnecting...');
-          
-          if (shouldRetryWithNewNick.current) {
-            // Immediate retry if we flagged a nick change
-             shouldRetryWithNewNick.current = false;
-             const { nick, channel, password } = lastConnectionParams.current;
-             connect(nick, channel, password);
-          } else {
-             // Standard delay retry
-             setTimeout(() => {
-               if (!isManualDisconnect.current && lastConnectionParams.current) {
+        // If not manually disconnected
+        if (!isManualDisconnect.current) {
+           // Auto Reconnect Logic
+           if (settings.autoReconnect && lastConnectionParams.current) {
+              console.log('Auto-reconnecting...');
+              
+              if (shouldRetryWithNewNick.current) {
+                // Immediate retry if we flagged a nick change
+                 shouldRetryWithNewNick.current = false;
                  const { nick, channel, password } = lastConnectionParams.current;
                  connect(nick, channel, password);
-               }
-             }, 2000);
-          }
+              } else {
+                 // Standard delay retry
+                 setTimeout(() => {
+                   if (!isManualDisconnect.current && lastConnectionParams.current) {
+                     const { nick, channel, password } = lastConnectionParams.current;
+                     connect(nick, channel, password);
+                   }
+                 }, 2000);
+              }
+           } else {
+             // Show Error to User
+             // Code 1006 usually means "Connection Aborted" (e.g. 502 Proxy Error)
+             let errorMsg = `Connection lost (Code: ${event.code})`;
+             if (event.code === 1006) errorMsg = "Connection failed. If using proxy, check URL.";
+             if (event.reason) errorMsg += `: ${event.reason}`;
+             
+             setChatState(prev => ({ ...prev, error: errorMsg }));
+           }
         }
       };
 
       ws.onerror = (event) => {
         console.error('WS Error Event:', event);
-        // Logic handled in onclose mostly, but we show error if no retry
-        if (!settings.autoReconnect) {
-          setIsConnecting(false);
-          setChatState(prev => ({ ...prev, error: 'Connection failed. Check console for details (F12).' }));
-        }
+        // Note: onError usually precedes onClose. 
+        // We handle the user-facing error state in onClose because it contains the status code.
       };
     } catch (e: any) {
       setIsConnecting(false);

@@ -2,7 +2,9 @@
 export default {
   async fetch(request, env, ctx) {
     // 目标 WebSocket 地址
-    const targetUrl = "wss://hack.chat/chat-ws";
+    // 注意：在 Cloudflare Worker fetch 中，必须使用 https:// 协议头来触发 WebSocket 升级，
+    // 不能直接写 wss://，否则会报错导致 502。
+    const targetUrl = "https://hack.chat/chat-ws";
 
     // 1. 检查是否为 WebSocket 请求
     const upgradeHeader = request.headers.get('Upgrade');
@@ -11,8 +13,6 @@ export default {
     }
 
     // 2. 构建新的请求头
-    // 注意：不要手动设置 'Host' 头，Cloudflare fetch 会自动根据 URL 设置。
-    // 手动设置 Host 往往会导致 "Forbidden header name" 错误。
     const newHeaders = new Headers();
 
     // 只复制 WebSocket 握手必须的头
