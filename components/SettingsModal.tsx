@@ -1,14 +1,6 @@
 
-
-
-
-
-
-
-
-
 import React, { useState } from 'react';
-import { X, Trash2, Image as ImageIcon, Palette, Shield, Volume2, Sparkles, Smile, Calculator, Star, Plus, RefreshCw, Check, AlertTriangle, Zap, Globe, CheckCircle, Circle } from 'lucide-react';
+import { X, Trash2, Image as ImageIcon, Palette, Shield, Volume2, Sparkles, Smile, Calculator, Star, Plus, RefreshCw, Check, AlertTriangle, Zap, Globe, CheckCircle, Circle, Wifi, Activity, AlertCircle, Loader2 } from 'lucide-react';
 import { AppSettings, Theme, SpecialColor, SpecialUser } from '../types';
 import { THEMES, DEFAULT_WS_URL } from '../constants';
 
@@ -33,6 +25,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
   // Proxy State
   const [newProxyUrl, setNewProxyUrl] = useState('');
+  const [testResults, setTestResults] = useState<Record<string, { status: 'loading' | 'success' | 'error', latency?: number }>>({});
 
   // Epilespy Warning State
   const [showChaosWarning, setShowChaosWarning] = useState(false);
@@ -98,7 +91,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
     // Check duplicates (including default)
     if (url === DEFAULT_WS_URL || settings.customProxies.includes(url)) {
-       // Optionally show user feedback? For now just clear/ignore.
        setNewProxyUrl('');
        return;
     }
@@ -109,6 +101,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
       wsUrl: url // Auto-select the newly added proxy
     });
     setNewProxyUrl('');
+    // Clear test result for the input field as it's now moved to list
+    setTestResults(prev => {
+        const newState = { ...prev };
+        delete newState[url]; 
+        return newState;
+    });
   };
 
   const handleDeleteProxy = (urlToDelete: string) => {
@@ -129,6 +127,53 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
 
   const handleSelectProxy = (url: string) => {
     onUpdateSettings({ ...settings, wsUrl: url });
+  };
+
+  const handleTestUrl = (urlToTest: string) => {
+    if (!urlToTest) return;
+    
+    setTestResults(prev => ({ ...prev, [urlToTest]: { status: 'loading' } }));
+    
+    const start = performance.now();
+    let ws: WebSocket | null = null;
+
+    try {
+        ws = new WebSocket(urlToTest);
+        
+        const timeoutId = setTimeout(() => {
+            if (ws) {
+                ws.close();
+                setTestResults(prev => ({ ...prev, [urlToTest]: { status: 'error' } }));
+            }
+        }, 5000);
+
+        ws.onopen = () => {
+            clearTimeout(timeoutId);
+            const latency = Math.round(performance.now() - start);
+            ws?.close();
+            setTestResults(prev => ({ ...prev, [urlToTest]: { status: 'success', latency } }));
+        };
+
+        ws.onerror = () => {
+            clearTimeout(timeoutId);
+            setTestResults(prev => ({ ...prev, [urlToTest]: { status: 'error' } }));
+        };
+    } catch (e) {
+        setTestResults(prev => ({ ...prev, [urlToTest]: { status: 'error' } }));
+    }
+  };
+
+  const getTestIcon = (url: string) => {
+      const result = testResults[url];
+      if (!result) return <Activity className="w-4 h-4" />;
+      if (result.status === 'loading') return <Loader2 className="w-4 h-4 animate-spin text-blue-500" />;
+      if (result.status === 'success') return (
+        <div className="flex items-center gap-1 text-green-500">
+            <Wifi className="w-4 h-4" />
+            <span className="text-[10px] font-mono">{result.latency}ms</span>
+        </div>
+      );
+      return <AlertCircle className="w-4 h-4 text-red-500" />;
   };
 
   const COLORS: SpecialColor[] = ['red', 'orange', 'gold', 'green', 'cyan', 'purple'];
@@ -208,7 +253,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                     <div>
                       <label className="block text-sm font-medium mb-2 opacity-80">Connection Node</label>
                       <p className="text-xs opacity-60 mb-3">
-                         Select a server to connect to. Use a custom proxy (e.g., Cloudflare Worker) if you cannot connect to the official server.
+                         Select a server to connect to. You can test connectivity before joining.
                       </p>
                       
                       <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
@@ -231,28 +276,56 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                                  </div>
                               </button>
                               
-                              {url !== DEFAULT_WS_URL && (
-                                <button 
-                                  onClick={() => handleDeleteProxy(url)}
-                                  className="p-2 text-gray-500 hover:text-red-500 transition-colors shrink-0"
-                                  title="Remove Proxy"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                              )}
+                              <div className="flex items-center gap-1">
+                                  <button 
+                                    onClick={() => handleTestUrl(url)}
+                                    className="p-2 text-gray-500 hover:text-blue-500 transition-colors shrink-0"
+                                    title="Test Connection"
+                                  >
+                                    {getTestIcon(url)}
+                                  </button>
+
+                                  {url !== DEFAULT_WS_URL && (
+                                    <button 
+                                      onClick={() => handleDeleteProxy(url)}
+                                      className="p-2 text-gray-500 hover:text-red-500 transition-colors shrink-0"
+                                      title="Remove Proxy"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  )}
+                              </div>
                            </div>
                         ))}
                       </div>
 
                       <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={newProxyUrl}
-                          onChange={(e) => setNewProxyUrl(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleAddProxy()}
-                          placeholder="wss://your-proxy.workers.dev"
-                          className={`flex-1 px-3 py-2 rounded border ${activeTheme.border} ${activeTheme.inputBg} focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm font-mono`}
-                        />
+                        <div className="flex-1 relative">
+                            <input
+                            type="text"
+                            value={newProxyUrl}
+                            onChange={(e) => setNewProxyUrl(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAddProxy()}
+                            placeholder="wss://your-proxy.workers.dev"
+                            className={`w-full px-3 py-2 pr-10 rounded border ${activeTheme.border} ${activeTheme.inputBg} focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm font-mono`}
+                            />
+                            {/* Status Indicator for Input */}
+                            {newProxyUrl && testResults[newProxyUrl] && (
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                                    {getTestIcon(newProxyUrl)}
+                                </div>
+                            )}
+                        </div>
+
+                        <button
+                            onClick={() => handleTestUrl(newProxyUrl)}
+                            disabled={!newProxyUrl.trim()}
+                            className="px-3 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-current text-sm font-bold rounded transition-colors"
+                            title="Test Connection"
+                        >
+                            <Activity className="w-4 h-4" />
+                        </button>
+
                         <button 
                            onClick={handleAddProxy}
                            disabled={!newProxyUrl.trim()}

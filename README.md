@@ -1,3 +1,4 @@
+
 # Hack.Chat Client Redux (HC-CLI) 🌸
 
 这是一个基于 React、TypeScript 和 Tailwind CSS 构建的现代 hack.chat 客户端。它旨在提供极致的视觉体验和流畅的交互，拥有精美的主题系统、粒子特效以及现代化的聊天功能。
@@ -7,6 +8,7 @@
 *   **🎨 多主题系统**：内置 Dark, Light, Hacker, Nebula, Synthwave, Floral (花语) 等多种精心调色的主题。
 *   **💊 智能提及 (New)**：全新的胶囊型 @提及系统。自动高亮提及对象，具备上下文感知的配色方案（己方视角与他人视角不同），支持键盘上下键快速选择用户。
 *   **✨ 视觉特效**：支持沉浸式背景动画，包括科技感连线（Hacker/Dark）及唯美的花瓣飘落（Floral）特效。
+*   **🌐 代理支持 (New)**：内置多节点管理与连接测试功能，支持自定义 WebSocket 代理（Cloudflare Workers）。
 *   **🛠️ 现代化交互**：
     *   **用户管理**：右键菜单屏蔽用户/Tripcode。
     *   **Markdown 增强**：完整的 Markdown 渲染，支持代码高亮与 LaTeX 数学公式 ($E=mc^2$)。
@@ -63,6 +65,22 @@ npm run dev
     npx serve -s dist -l 3000
     ```
     访问 `http://localhost:3000` 即可。
+
+---
+
+## 🌐 部署自定义代理 (Cloudflare Workers)
+
+如果在你的网络环境下无法直接连接官方服务器，你可以部署一个 Cloudflare Worker 来作为中转节点。
+
+1.  登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)。
+2.  进入 **Workers & Pages**，点击 **Create Application** -> **Create Worker**。
+3.  为 Worker 命名（例如 `hc-proxy`），点击 Deploy。
+4.  点击 **Edit code**。
+5.  将项目根目录下的 `proxy-worker.js` 文件的内容完整复制并粘贴到编辑器中，覆盖原有代码。
+6.  点击 **Deploy** 保存。
+7.  复制你的 Worker URL（例如 `wss://hc-proxy.你的名字.workers.dev`）。
+8.  回到本客户端，在 **Settings** -> **Network / Proxy** 中添加这个地址。
+    *   *注意：记得先点击测试按钮确保连接成功。*
 
 ---
 
