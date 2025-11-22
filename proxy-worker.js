@@ -6,12 +6,13 @@ export default {
 
     // 1. 检查是否为 WebSocket 请求
     const upgradeHeader = request.headers.get('Upgrade');
-    if (!upgradeHeader || upgradeHeader !== 'websocket') {
+    if (!upgradeHeader || upgradeHeader.toLowerCase() !== 'websocket') {
       return new Response('Hack.Chat Proxy Node is Running.\nPlease connect via a WebSocket client.', { status: 200 });
     }
 
-    // 2. 构建新的请求头 (关键修正)
-    // 不能直接复制 request.headers，否则会带上 worker 的 Host，导致对方拒绝
+    // 2. 构建新的请求头
+    // 注意：不要手动设置 'Host' 头，Cloudflare fetch 会自动根据 URL 设置。
+    // 手动设置 Host 往往会导致 "Forbidden header name" 错误。
     const newHeaders = new Headers();
 
     // 只复制 WebSocket 握手必须的头
@@ -31,10 +32,10 @@ export default {
       }
     }
 
-    // 3. 深度伪装
-    newHeaders.set('Host', 'hack.chat');                 // 告诉服务器我们访问的是 hack.chat
-    newHeaders.set('Origin', 'https://hack.chat');       // 告诉服务器我们来自官方网站
-    newHeaders.set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'); // 伪装成浏览器
+    // 3. 关键伪装：Origin
+    // Hack.chat 服务器检查这个来防止跨站连接
+    newHeaders.set('Origin', 'https://hack.chat');
+    newHeaders.set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
     // 4. 发起转发
     try {
@@ -43,10 +44,10 @@ export default {
         headers: newHeaders,
       });
 
-      // 返回上游服务器的响应 (101 Switching Protocols)
       return response;
     } catch (e) {
-      return new Response(`Proxy Error: ${e.message}`, { status: 500 });
+      // 如果 fetch 失败，返回 502 Bad Gateway
+      return new Response(`Proxy Error: ${e.message}`, { status: 502 });
     }
   },
 };

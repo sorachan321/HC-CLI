@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Menu, Settings, Send, Image as ImageIcon, X, Smile, DoorOpen, Loader2, AtSign, Globe } from 'lucide-react';
 import useSound from 'use-sound'; 
@@ -279,8 +280,8 @@ function App() {
         handleMessage(data, nick, channel);
       };
 
-      ws.onclose = () => {
-        console.log('Disconnected');
+      ws.onclose = (event) => {
+        console.log('Disconnected. Code:', event.code, 'Reason:', event.reason);
         clearInterval(pingIntervalRef.current);
         setIsConnecting(false);
         setChatState(prev => ({ ...prev, connected: false, joined: false, users: [] }));
@@ -306,12 +307,12 @@ function App() {
         }
       };
 
-      ws.onerror = (err) => {
-        console.error('WS Error', err);
+      ws.onerror = (event) => {
+        console.error('WS Error Event:', event);
         // Logic handled in onclose mostly, but we show error if no retry
         if (!settings.autoReconnect) {
           setIsConnecting(false);
-          setChatState(prev => ({ ...prev, error: 'Connection failed. Please check your internet, proxy settings, or try again later.' }));
+          setChatState(prev => ({ ...prev, error: 'Connection failed. Check console for details (F12).' }));
         }
       };
     } catch (e: any) {
