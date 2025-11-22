@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Menu, Settings, Send, Image as ImageIcon, X, Smile, DoorOpen, Loader2, AtSign, Globe } from 'lucide-react';
 import useSound from 'use-sound'; 
@@ -7,9 +9,11 @@ import Login from './components/Login';
 import MessageItem from './components/MessageItem';
 import SettingsModal from './components/SettingsModal';
 import UserList from './components/UserList';
-import ParticleBackground from './components/ParticleBackground';
+// Lazy load ParticleBackground to prevent blocking the main thread on startup
+const ParticleBackground = React.lazy(() => import('./components/ParticleBackground'));
+
 import StickerPicker from './components/StickerPicker';
-import { THEMES, DEFAULT_WS_URL } from './constants';
+import { THEMES, DEFAULT_WS_URL, CHAOS_CSS } from './constants';
 import { AppSettings, ChatState, HackChatMessage, User } from './types';
 import { uploadToImgBB } from './services/imgbbService';
 import { uploadToGyazo } from './services/gyazoService';
@@ -105,6 +109,29 @@ function App() {
   const theme = THEMES[settings.theme];
 
   // -- Effects --
+
+  // Remove the static loader when App mounts
+  useEffect(() => {
+    const loader = document.getElementById('initial-loader');
+    if (loader) {
+      loader.style.opacity = '0';
+      setTimeout(() => loader.remove(), 500);
+    }
+  }, []);
+
+  // Dynamically inject Chaos CSS only when needed
+  useEffect(() => {
+    if (settings.theme === 'd$ck') {
+      const style = document.createElement('style');
+      style.id = 'chaos-mode-styles';
+      style.textContent = CHAOS_CSS;
+      document.head.appendChild(style);
+      return () => {
+        const el = document.getElementById('chaos-mode-styles');
+        if (el) el.remove();
+      };
+    }
+  }, [settings.theme]);
 
   useEffect(() => {
     try {
@@ -631,7 +658,12 @@ function App() {
   if (isConnecting) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${theme.bg} ${theme.fg} relative overflow-hidden`}>
-        {settings.enableEffects && <ParticleBackground themeName={settings.theme} />}
+        {/* Wrap Suspense around lazy-loaded components */}
+        {settings.enableEffects && (
+          <React.Suspense fallback={null}>
+            <ParticleBackground themeName={settings.theme} />
+          </React.Suspense>
+        )}
         
         {/* Loading Card */}
         <div className={`flex flex-col items-center gap-6 z-10 p-8 rounded-2xl bg-black/20 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-300 shadow-2xl max-w-sm w-full mx-4`}>
@@ -708,7 +740,11 @@ function App() {
   return (
     <div className={`flex h-screen overflow-hidden relative ${theme.bg} ${theme.fg}`}>
       
-      {settings.enableEffects && <ParticleBackground themeName={settings.theme} />}
+      {settings.enableEffects && (
+        <React.Suspense fallback={null}>
+          <ParticleBackground themeName={settings.theme} />
+        </React.Suspense>
+      )}
 
       {/* Mobile Header */}
       <div className={`md:hidden fixed top-0 w-full z-20 h-14 border-b ${theme.border} ${theme.sidebarBg} flex items-center justify-between px-4`}>

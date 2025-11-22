@@ -1,5 +1,6 @@
 
 
+
 import { Theme, SpecialColor } from './types';
 
 export const DEFAULT_CHANNEL = 'programming';
@@ -276,3 +277,106 @@ export const THEMES: Record<Theme, {
     }
   }
 };
+
+// Dynamic CSS for Chaos Mode (Injected only when needed)
+export const CHAOS_CSS = `
+@keyframes chaos-glitch-skew {
+  0% { transform: skew(0deg); }
+  20% { transform: skew(-20deg); }
+  40% { transform: skew(20deg); }
+  60% { transform: skew(-5deg); }
+  80% { transform: skew(5deg); }
+  100% { transform: skew(0deg); }
+}
+
+@keyframes chaos-flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes chaos-shake {
+  0% { transform: translate(2px, 2px) rotate(0deg); }
+  10% { transform: translate(-2px, -4px) rotate(-2deg); }
+  20% { transform: translate(-6px, 0px) rotate(2deg); }
+  30% { transform: translate(6px, 4px) rotate(0deg); }
+  40% { transform: translate(2px, -2px) rotate(2deg); }
+  50% { transform: translate(-2px, 4px) rotate(-2deg); }
+  60% { transform: translate(-6px, 2px) rotate(0deg); }
+  70% { transform: translate(6px, 2px) rotate(-2deg); }
+  80% { transform: translate(-2px, -2px) rotate(2deg); }
+  90% { transform: translate(2px, 4px) rotate(0deg); }
+  100% { transform: translate(2px, -4px) rotate(-2deg); }
+}
+
+@keyframes chaos-rgb-split {
+  0% { text-shadow: -4px 0 red, 4px 0 blue; }
+  25% { text-shadow: -4px -4px red, 4px 4px blue; }
+  50% { text-shadow: -4px 4px red, 4px -4px blue; }
+  75% { text-shadow: 4px 4px red, -4px -4px blue; }
+  100% { text-shadow: -4px 0 red, 4px 0 blue; }
+}
+
+@keyframes chaos-dvd-bounce {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(40px, -40px); }
+  50% { transform: translate(-40px, 20px); }
+  75% { transform: translate(20px, 40px); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes chaos-rotate {
+   0% { transform: rotate(0deg); }
+   50% { transform: rotate(15deg); }
+   100% { transform: rotate(-15deg); }
+}
+
+@keyframes chaos-rainbow {
+  0% { color: #ff0000; }
+  14% { color: #ff7f00; }
+  28% { color: #ffff00; }
+  42% { color: #00ff00; }
+  57% { color: #0000ff; }
+  71% { color: #4b0082; }
+  85% { color: #9400d3; }
+  100% { color: #ff0000; }
+}
+
+@keyframes chaos-button-flash {
+  0% { background-color: transparent; border-color: transparent; }
+  25% { background-color: #ff0000; border-color: #ffff00; }
+  50% { background-color: #00ff00; border-color: #ff00ff; }
+  75% { background-color: #0000ff; border-color: #00ffff; }
+  100% { background-color: transparent; border-color: transparent; }
+}
+
+.chaos-text {
+  animation: chaos-rgb-split 0.2s infinite steps(2);
+}
+
+.chaos-flash {
+  animation: chaos-flash 0.1s infinite;
+}
+
+.chaos-shake {
+  animation: chaos-shake 0.2s infinite;
+}
+
+.chaos-dvd {
+  animation: chaos-dvd-bounce 1s infinite alternate ease-in-out;
+}
+
+.chaos-rotate {
+  animation: chaos-rotate 0.3s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chaos-rainbow-text {
+  animation: chaos-rainbow 0.2s infinite linear;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-shadow: 2px 2px 0px #000;
+}
+
+.chaos-hover-flash:hover {
+  animation: chaos-button-flash 0.1s infinite;
+}
+`;
