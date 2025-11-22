@@ -31,18 +31,19 @@ export interface SpecialUser {
 
 export interface AppSettings {
   theme: Theme;
-  chaosMode: boolean; // New: Enables the insanity logic
-  imageHost: 'imgbb' | 'gyazo'; // New: Selectable image host
+  chaosMode: boolean; // Enables the insanity logic
+  showChaosTheme: boolean; // New: Toggles visibility of D$CK theme button
+  imageHost: 'imgbb' | 'gyazo';
   imgbbApiKey: string;
-  gyazoAccessToken: string; // New: Gyazo API Token
+  gyazoAccessToken: string;
   tenorApiKey: string; // New for GIF search
   blockedNicks: string[];
   blockedTrips: string[];
-  specialUsers: SpecialUser[]; // New: Watched users
+  specialUsers: SpecialUser[];
   soundEnabled: boolean;
   enableEffects: boolean;
   enableLatex: boolean;
-  autoReconnect: boolean; // New: Auto Reconnect logic
+  autoReconnect: boolean;
 }
 
 export interface ChatState {

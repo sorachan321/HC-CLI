@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Menu, Settings, Send, Image as ImageIcon, X, Smile, DoorOpen, Loader2, AtSign } from 'lucide-react';
 import useSound from 'use-sound'; 
@@ -25,7 +26,8 @@ function App() {
   const [settings, setSettings] = useState<AppSettings>(() => {
     const defaults: AppSettings = {
       theme: 'dark',
-      chaosMode: false, // Default off
+      chaosMode: false,
+      showChaosTheme: false, // Default to hidden
       imageHost: 'imgbb', // Default to ImgBB
       imgbbApiKey: '',
       gyazoAccessToken: '',

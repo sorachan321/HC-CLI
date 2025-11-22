@@ -108,6 +108,26 @@
          100% { transform: rotate(-15deg); }
       }
 
+      /* NEW: Settings Animations */
+      @keyframes chaos-rainbow {
+        0% { color: #ff0000; }
+        14% { color: #ff7f00; }
+        28% { color: #ffff00; }
+        42% { color: #00ff00; }
+        57% { color: #0000ff; }
+        71% { color: #4b0082; }
+        85% { color: #9400d3; }
+        100% { color: #ff0000; }
+      }
+
+      @keyframes chaos-button-flash {
+        0% { background-color: transparent; border-color: transparent; }
+        25% { background-color: #ff0000; border-color: #ffff00; }
+        50% { background-color: #00ff00; border-color: #ff00ff; }
+        75% { background-color: #0000ff; border-color: #00ffff; }
+        100% { background-color: transparent; border-color: transparent; }
+      }
+
       .chaos-text {
         animation: chaos-rgb-split 0.2s infinite steps(2);
       }
@@ -126,6 +146,17 @@
 
       .chaos-rotate {
         animation: chaos-rotate 0.3s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .chaos-rainbow-text {
+        animation: chaos-rainbow 0.2s infinite linear;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+        text-shadow: 2px 2px 0px #000;
+      }
+
+      .chaos-hover-flash:hover {
+        animation: chaos-button-flash 0.1s infinite;
       }
     </style>
   <script type="importmap">

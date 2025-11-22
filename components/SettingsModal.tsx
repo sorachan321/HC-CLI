@@ -1,5 +1,8 @@
 
 
+
+
+
 import React, { useState } from 'react';
 import { X, Trash2, Image as ImageIcon, Palette, Shield, Volume2, Sparkles, Smile, Calculator, Star, Plus, RefreshCw, Check, AlertTriangle, Zap } from 'lucide-react';
 import { AppSettings, Theme, SpecialColor, SpecialUser } from '../types';
@@ -53,6 +56,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
   };
 
   const addSpecialUser = () => {
+    // Must have at least one identifier
     if (!newSpecialNick && !newSpecialTrip) return;
 
     const newUser: SpecialUser = {
@@ -68,6 +72,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
       specialUsers: [...settings.specialUsers, newUser]
     });
 
+    // Reset fields
     setNewSpecialNick('');
     setNewSpecialTrip('');
     setNewSpecialLabel('');
@@ -119,18 +124,29 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                   <Palette className="w-5 h-5" /> Appearance
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {(Object.keys(THEMES) as Theme[]).map((themeKey) => (
-                    <button
-                      key={themeKey}
-                      onClick={() => handleThemeSelect(themeKey)}
-                      className={`p-4 rounded-lg border-2 transition-all overflow-hidden relative ${settings.theme === themeKey ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-transparent hover:border-gray-500'} ${THEMES[themeKey].bg}`}
-                    >
-                      <div className={`text-center font-medium relative z-10 ${THEMES[themeKey].fg}`}>
-                         {THEMES[themeKey].name}
-                         {themeKey === 'd$ck' && <Zap className="w-3 h-3 inline ml-1 text-yellow-400 animate-pulse" />}
-                      </div>
-                    </button>
-                  ))}
+                  {(Object.keys(THEMES) as Theme[]).map((themeKey) => {
+                    const isDck = themeKey === 'd$ck';
+                    // Hide d$ck theme if not unlocked
+                    if (isDck && !settings.showChaosTheme) return null;
+
+                    return (
+                      <button
+                        key={themeKey}
+                        onClick={() => handleThemeSelect(themeKey)}
+                        className={`
+                          p-4 rounded-lg border-2 transition-all overflow-hidden relative group
+                          ${settings.theme === themeKey ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-transparent hover:border-gray-500'} 
+                          ${THEMES[themeKey].bg}
+                          ${isDck ? 'chaos-hover-flash border-transparent' : ''}
+                        `}
+                      >
+                        <div className={`text-center font-medium relative z-10 ${THEMES[themeKey].fg} ${isDck ? 'chaos-rainbow-text' : ''}`}>
+                           {isDck ? 'D$CK' : THEMES[themeKey].name}
+                           {isDck && <Zap className="w-3 h-3 inline ml-1 animate-spin" />}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </section>
 
@@ -191,6 +207,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                       <span className="text-xs opacity-60">Automatically try to rejoin if disconnected. Adds 'A' to nick if taken.</span>
                     </div>
                 </label>
+
+                <label className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-white/5 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={settings.showChaosTheme ?? false}
+                      onChange={(e) => updateField('showChaosTheme', e.target.checked)}
+                      className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500"
+                    />
+                    <div className="flex flex-col">
+                      <span className="font-medium flex items-center gap-2 text-red-400"><Zap className="w-4 h-4" /> Show D$CK Theme</span>
+                      <span className="text-xs opacity-60">Reveal the experimental, high-contrast chaos theme option</span>
+                    </div>
+                </label>
+
                 </div>
               </section>
 
@@ -329,56 +359,72 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
               {/* Add Form */}
               <div className={`p-5 rounded-xl border ${activeTheme.border} bg-white/5 mb-6`}>
                 <h4 className="font-medium mb-4 opacity-90">Add New Watch Item</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="text-xs uppercase tracking-wider opacity-60 mb-1 block">Nickname</label>
-                    <input
-                      type="text"
-                      value={newSpecialNick}
-                      onChange={(e) => setNewSpecialNick(e.target.value)}
-                      placeholder="e.g. Alice"
-                      className={`w-full px-3 py-2 rounded border ${activeTheme.border} ${activeTheme.inputBg} focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                    />
+                <div className="flex flex-col gap-4 mb-4">
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                    {/* Nickname Input */}
+                    <div className={`transition-opacity duration-200 ${newSpecialTrip ? 'opacity-30 grayscale' : 'opacity-100'}`}>
+                      <label className="text-xs uppercase tracking-wider opacity-60 mb-1 block">Nickname</label>
+                      <input
+                        type="text"
+                        value={newSpecialNick}
+                        disabled={!!newSpecialTrip}
+                        onChange={(e) => setNewSpecialNick(e.target.value)}
+                        placeholder="e.g. Alice"
+                        className={`w-full px-3 py-2 rounded border ${activeTheme.border} ${activeTheme.inputBg} focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed`}
+                      />
+                    </div>
+
+                    {/* OR separator for mobile/desktop */}
+                    <div className="md:hidden text-center text-xs font-bold opacity-50">— OR —</div>
+
+                    {/* Tripcode Input */}
+                    <div className={`transition-opacity duration-200 ${newSpecialNick ? 'opacity-30 grayscale' : 'opacity-100'}`}>
+                      <label className="text-xs uppercase tracking-wider opacity-60 mb-1 block">Tripcode</label>
+                      <input
+                        type="text"
+                        value={newSpecialTrip}
+                        disabled={!!newSpecialNick}
+                        onChange={(e) => setNewSpecialTrip(e.target.value)}
+                        placeholder="e.g. XyZ123"
+                        className={`w-full px-3 py-2 rounded border ${activeTheme.border} ${activeTheme.inputBg} focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed`}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-xs uppercase tracking-wider opacity-60 mb-1 block">Tripcode (Optional)</label>
-                    <input
-                      type="text"
-                      value={newSpecialTrip}
-                      onChange={(e) => setNewSpecialTrip(e.target.value)}
-                      placeholder="e.g. XyZ123"
-                      className={`w-full px-3 py-2 rounded border ${activeTheme.border} ${activeTheme.inputBg} focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs uppercase tracking-wider opacity-60 mb-1 block">Suffix Label (Optional)</label>
-                    <input
-                      type="text"
-                      value={newSpecialLabel}
-                      onChange={(e) => setNewSpecialLabel(e.target.value)}
-                      placeholder="e.g. [Admin]"
-                      className={`w-full px-3 py-2 rounded border ${activeTheme.border} ${activeTheme.inputBg} focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs uppercase tracking-wider opacity-60 mb-1 block">Color</label>
-                    <div className="flex gap-3 pt-2">
-                      {COLORS.map(color => (
-                        <button
-                          key={color}
-                          onClick={() => setNewSpecialColor(color)}
-                          className={`w-6 h-6 rounded-full transition-transform hover:scale-110 ${newSpecialColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-black' : ''}`}
-                          style={{ backgroundColor: color }}
-                          title={color}
-                        />
-                      ))}
+                  
+                  {/* Label and Color */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs uppercase tracking-wider opacity-60 mb-1 block">Suffix Label (Optional)</label>
+                      <input
+                        type="text"
+                        value={newSpecialLabel}
+                        onChange={(e) => setNewSpecialLabel(e.target.value)}
+                        placeholder="e.g. [Admin]"
+                        className={`w-full px-3 py-2 rounded border ${activeTheme.border} ${activeTheme.inputBg} focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs uppercase tracking-wider opacity-60 mb-1 block">Color</label>
+                      <div className="flex gap-3 pt-2">
+                        {COLORS.map(color => (
+                          <button
+                            key={color}
+                            onClick={() => setNewSpecialColor(color)}
+                            className={`w-6 h-6 rounded-full transition-transform hover:scale-110 ${newSpecialColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-black' : ''}`}
+                            style={{ backgroundColor: color }}
+                            title={color}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
+
                 <button
                   onClick={addSpecialUser}
-                  disabled={!newSpecialNick && !newSpecialTrip}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+                  disabled={(!newSpecialNick && !newSpecialTrip)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
                 >
                   <Plus className="w-4 h-4" /> Add to Watchlist
                 </button>
@@ -396,10 +442,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                         <div className="w-4 h-4 rounded-full shadow-sm" style={{ backgroundColor: user.color }} />
                         <div className="flex flex-col">
                           <span className="font-bold text-sm">
-                            {user.nick || <span className="italic opacity-50">Any Nick</span>}
+                            {user.nick ? (
+                                <span>{user.nick}</span>
+                            ) : (
+                                <span className="font-mono">{user.trip} <span className="text-xs opacity-50 font-sans">(Tripcode)</span></span>
+                            )}
                             {user.label && <span className="ml-2 opacity-60 text-xs font-normal bg-white/10 px-1.5 rounded">{user.label}</span>}
                           </span>
-                          {user.trip && <span className="text-xs font-mono opacity-50">{user.trip}</span>}
+                          {/* Show details if available */}
+                          {user.nick && user.trip && <span className="text-xs font-mono opacity-50">{user.trip}</span>}
                         </div>
                       </div>
                       <button 
