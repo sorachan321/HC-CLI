@@ -3,10 +3,14 @@
 
 
 
+
+
+
+
 import React, { useState } from 'react';
-import { X, Trash2, Image as ImageIcon, Palette, Shield, Volume2, Sparkles, Smile, Calculator, Star, Plus, RefreshCw, Check, AlertTriangle, Zap } from 'lucide-react';
+import { X, Trash2, Image as ImageIcon, Palette, Shield, Volume2, Sparkles, Smile, Calculator, Star, Plus, RefreshCw, Check, AlertTriangle, Zap, Globe, CheckCircle, Circle } from 'lucide-react';
 import { AppSettings, Theme, SpecialColor, SpecialUser } from '../types';
-import { THEMES } from '../constants';
+import { THEMES, DEFAULT_WS_URL } from '../constants';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -26,6 +30,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
   const [newSpecialTrip, setNewSpecialTrip] = useState('');
   const [newSpecialLabel, setNewSpecialLabel] = useState('');
   const [newSpecialColor, setNewSpecialColor] = useState<SpecialColor>('gold');
+
+  // Proxy State
+  const [newProxyUrl, setNewProxyUrl] = useState('');
 
   // Epilespy Warning State
   const [showChaosWarning, setShowChaosWarning] = useState(false);
@@ -85,7 +92,49 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     });
   };
 
+  const handleAddProxy = () => {
+    const url = newProxyUrl.trim();
+    if (!url) return;
+
+    // Check duplicates (including default)
+    if (url === DEFAULT_WS_URL || settings.customProxies.includes(url)) {
+       // Optionally show user feedback? For now just clear/ignore.
+       setNewProxyUrl('');
+       return;
+    }
+
+    onUpdateSettings({
+      ...settings,
+      customProxies: [...settings.customProxies, url],
+      wsUrl: url // Auto-select the newly added proxy
+    });
+    setNewProxyUrl('');
+  };
+
+  const handleDeleteProxy = (urlToDelete: string) => {
+    const newProxies = settings.customProxies.filter(p => p !== urlToDelete);
+    
+    // If we are deleting the currently active URL, revert to default
+    let newActiveUrl = settings.wsUrl;
+    if (settings.wsUrl === urlToDelete) {
+      newActiveUrl = DEFAULT_WS_URL;
+    }
+
+    onUpdateSettings({
+      ...settings,
+      customProxies: newProxies,
+      wsUrl: newActiveUrl
+    });
+  };
+
+  const handleSelectProxy = (url: string) => {
+    onUpdateSettings({ ...settings, wsUrl: url });
+  };
+
   const COLORS: SpecialColor[] = ['red', 'orange', 'gold', 'green', 'cyan', 'purple'];
+
+  // Combine default + custom for rendering
+  const allProxies = [DEFAULT_WS_URL, ...settings.customProxies];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -148,6 +197,72 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
                     );
                   })}
                 </div>
+              </section>
+
+              {/* Network & Proxy */}
+              <section>
+                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 opacity-90">
+                    <Globe className="w-5 h-5" /> Network / Proxy
+                 </h3>
+                 <div className={`p-4 rounded-lg border ${activeTheme.border} bg-white/5 space-y-4`}>
+                    <div>
+                      <label className="block text-sm font-medium mb-2 opacity-80">Connection Node</label>
+                      <p className="text-xs opacity-60 mb-3">
+                         Select a server to connect to. Use a custom proxy (e.g., Cloudflare Worker) if you cannot connect to the official server.
+                      </p>
+                      
+                      <div className="space-y-2 mb-4 max-h-40 overflow-y-auto">
+                        {allProxies.map((url, idx) => (
+                           <div 
+                             key={idx} 
+                             className={`flex items-center justify-between p-2 rounded border transition-colors ${settings.wsUrl === url ? 'border-blue-500 bg-blue-500/10' : `border-transparent hover:bg-white/5`}`}
+                           >
+                              <button 
+                                onClick={() => handleSelectProxy(url)}
+                                className="flex items-center gap-3 flex-1 overflow-hidden text-left"
+                              >
+                                 {settings.wsUrl === url 
+                                    ? <CheckCircle className="w-5 h-5 text-blue-500 shrink-0" /> 
+                                    : <Circle className="w-5 h-5 text-gray-500 shrink-0" />
+                                 }
+                                 <div className="flex flex-col overflow-hidden min-w-0">
+                                     <span className="font-mono text-sm truncate">{url}</span>
+                                     {url === DEFAULT_WS_URL && <span className="text-[10px] opacity-50 uppercase tracking-wider font-bold">Official Default</span>}
+                                 </div>
+                              </button>
+                              
+                              {url !== DEFAULT_WS_URL && (
+                                <button 
+                                  onClick={() => handleDeleteProxy(url)}
+                                  className="p-2 text-gray-500 hover:text-red-500 transition-colors shrink-0"
+                                  title="Remove Proxy"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                           </div>
+                        ))}
+                      </div>
+
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newProxyUrl}
+                          onChange={(e) => setNewProxyUrl(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddProxy()}
+                          placeholder="wss://your-proxy.workers.dev"
+                          className={`flex-1 px-3 py-2 rounded border ${activeTheme.border} ${activeTheme.inputBg} focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm font-mono`}
+                        />
+                        <button 
+                           onClick={handleAddProxy}
+                           disabled={!newProxyUrl.trim()}
+                           className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded transition-colors flex items-center gap-2"
+                        >
+                           <Plus className="w-4 h-4" /> Add
+                        </button>
+                      </div>
+                    </div>
+                 </div>
               </section>
 
               {/* Experience */}

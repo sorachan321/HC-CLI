@@ -1,8 +1,7 @@
 
 
-
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Menu, Settings, Send, Image as ImageIcon, X, Smile, DoorOpen, Loader2, AtSign } from 'lucide-react';
+import { Menu, Settings, Send, Image as ImageIcon, X, Smile, DoorOpen, Loader2, AtSign, Globe } from 'lucide-react';
 import useSound from 'use-sound'; 
 
 import Login from './components/Login';
@@ -28,6 +27,8 @@ function App() {
       theme: 'dark',
       chaosMode: false,
       showChaosTheme: false, // Default to hidden
+      wsUrl: DEFAULT_WS_URL, // Default to official server
+      customProxies: [], // Initialize custom proxies list
       imageHost: 'imgbb', // Default to ImgBB
       imgbbApiKey: '',
       gyazoAccessToken: '',
@@ -253,62 +254,81 @@ function App() {
       connected: false
     }));
 
-    const ws = new WebSocket(DEFAULT_WS_URL);
-    wsRef.current = ws;
+    // Use custom WS URL from settings if available, otherwise default
+    const targetUrl = settings.wsUrl && settings.wsUrl.trim() ? settings.wsUrl : DEFAULT_WS_URL;
+    console.log('Connecting to:', targetUrl);
 
-    ws.onopen = () => {
-      console.log('Connected to WS');
-      ws.send(JSON.stringify({ cmd: 'join', channel, nick, password: password || undefined }));
-      setChatState(prev => ({ ...prev, connected: true }));
+    try {
+      const ws = new WebSocket(targetUrl);
+      wsRef.current = ws;
 
-      pingIntervalRef.current = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ cmd: 'ping' }));
-        }
-      }, 60000);
-    };
+      ws.onopen = () => {
+        console.log('Connected to WS');
+        ws.send(JSON.stringify({ cmd: 'join', channel, nick, password: password || undefined }));
+        setChatState(prev => ({ ...prev, connected: true }));
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      handleMessage(data, nick, channel);
-    };
+        pingIntervalRef.current = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ cmd: 'ping' }));
+          }
+        }, 60000);
+      };
 
-    ws.onclose = () => {
-      console.log('Disconnected');
-      clearInterval(pingIntervalRef.current);
-      setIsConnecting(false);
-      setChatState(prev => ({ ...prev, connected: false, joined: false, users: [] }));
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        handleMessage(data, nick, channel);
+      };
 
-      // Auto Reconnect Logic
-      if (!isManualDisconnect.current && settings.autoReconnect && lastConnectionParams.current) {
-        console.log('Auto-reconnecting...');
-        
-        if (shouldRetryWithNewNick.current) {
-          // Immediate retry if we flagged a nick change
-           shouldRetryWithNewNick.current = false;
-           const { nick, channel, password } = lastConnectionParams.current;
-           connect(nick, channel, password);
-        } else {
-           // Standard delay retry
-           setTimeout(() => {
-             if (!isManualDisconnect.current && lastConnectionParams.current) {
-               const { nick, channel, password } = lastConnectionParams.current;
-               connect(nick, channel, password);
-             }
-           }, 2000);
-        }
-      }
-    };
-
-    ws.onerror = (err) => {
-      console.error('WS Error', err);
-      // Logic handled in onclose mostly, but we show error if no retry
-      if (!settings.autoReconnect) {
+      ws.onclose = () => {
+        console.log('Disconnected');
+        clearInterval(pingIntervalRef.current);
         setIsConnecting(false);
-        setChatState(prev => ({ ...prev, error: 'Connection failed. Please check your internet or try again later.' }));
-      }
-    };
+        setChatState(prev => ({ ...prev, connected: false, joined: false, users: [] }));
+
+        // Auto Reconnect Logic
+        if (!isManualDisconnect.current && settings.autoReconnect && lastConnectionParams.current) {
+          console.log('Auto-reconnecting...');
+          
+          if (shouldRetryWithNewNick.current) {
+            // Immediate retry if we flagged a nick change
+             shouldRetryWithNewNick.current = false;
+             const { nick, channel, password } = lastConnectionParams.current;
+             connect(nick, channel, password);
+          } else {
+             // Standard delay retry
+             setTimeout(() => {
+               if (!isManualDisconnect.current && lastConnectionParams.current) {
+                 const { nick, channel, password } = lastConnectionParams.current;
+                 connect(nick, channel, password);
+               }
+             }, 2000);
+          }
+        }
+      };
+
+      ws.onerror = (err) => {
+        console.error('WS Error', err);
+        // Logic handled in onclose mostly, but we show error if no retry
+        if (!settings.autoReconnect) {
+          setIsConnecting(false);
+          setChatState(prev => ({ ...prev, error: 'Connection failed. Please check your internet, proxy settings, or try again later.' }));
+        }
+      };
+    } catch (e: any) {
+      setIsConnecting(false);
+      setChatState(prev => ({ ...prev, error: `Invalid WebSocket URL: ${e.message}` }));
+    }
   };
+
+  const disconnect = useCallback(() => {
+    isManualDisconnect.current = true;
+    if (wsRef.current) {
+      wsRef.current.onclose = null; // Prevent auto-reconnect trigger from onclose
+      wsRef.current.close();
+    }
+    setIsConnecting(false);
+    setChatState(prev => ({ ...prev, connected: false, joined: false }));
+  }, []);
 
   const handleMessage = (data: any, myNick: string, myChannel: string) => {
     if (data.cmd === 'chat') {
@@ -598,29 +618,77 @@ function App() {
     return (
       <div className={`min-h-screen flex items-center justify-center ${theme.bg} ${theme.fg} relative overflow-hidden`}>
         {settings.enableEffects && <ParticleBackground themeName={settings.theme} />}
-        <div className={`flex flex-col items-center gap-6 z-10 p-8 rounded-2xl bg-black/20 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-300`}>
+        
+        {/* Loading Card */}
+        <div className={`flex flex-col items-center gap-6 z-10 p-8 rounded-2xl bg-black/20 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-300 shadow-2xl max-w-sm w-full mx-4`}>
           <div className="relative">
              <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
              <div className="absolute inset-0 flex items-center justify-center">
                <Loader2 className="w-8 h-8 text-blue-500 animate-pulse" />
              </div>
           </div>
-          <div className="text-center">
+          <div className="text-center w-full">
             <h2 className="text-2xl font-bold mb-2">Connecting...</h2>
-            <p className="opacity-60">Entering the matrix</p>
+            <p className="opacity-60 mb-4">Entering the matrix</p>
+            
+            {settings.wsUrl !== DEFAULT_WS_URL && (
+               <p className="text-xs mb-4 text-blue-400 font-mono bg-blue-500/10 py-1 px-2 rounded inline-block">
+                 Using Proxy
+               </p>
+            )}
+            
             {settings.autoReconnect && lastConnectionParams.current && (
-              <p className="text-xs mt-2 opacity-50">
+              <p className="text-xs mb-6 opacity-50">
                 Attempting to join as {lastConnectionParams.current.nick}...
               </p>
             )}
+
+            {/* Interruption Buttons */}
+            <div className="flex flex-col gap-3 w-full">
+               <button 
+                  onClick={() => setSettingsOpen(true)}
+                  className="w-full py-2 bg-white/10 hover:bg-white/20 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+               >
+                 <Globe className="w-4 h-4" /> Settings / Proxy
+               </button>
+               <button 
+                  onClick={disconnect}
+                  className="w-full py-2 border border-red-500/30 text-red-500 hover:bg-red-500/10 text-sm font-medium rounded-lg transition-colors"
+               >
+                 Cancel
+               </button>
+            </div>
           </div>
         </div>
+
+        {/* Ensure settings modal can be seen over loading screen */}
+        <SettingsModal 
+          isOpen={isSettingsOpen} 
+          onClose={() => setSettingsOpen(false)} 
+          settings={settings}
+          onUpdateSettings={setSettings}
+        />
       </div>
     );
   }
 
   if (!chatState.joined) {
-    return <Login onJoin={connect} settings={settings} error={chatState.error} />;
+    return (
+      <>
+        <Login 
+          onJoin={connect} 
+          settings={settings} 
+          error={chatState.error} 
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
+        <SettingsModal 
+          isOpen={isSettingsOpen} 
+          onClose={() => setSettingsOpen(false)} 
+          settings={settings}
+          onUpdateSettings={setSettings}
+        />
+      </>
+    );
   }
 
   return (

@@ -33,6 +33,8 @@ export interface AppSettings {
   theme: Theme;
   chaosMode: boolean; // Enables the insanity logic
   showChaosTheme: boolean; // New: Toggles visibility of D$CK theme button
+  wsUrl: string; // Active WebSocket URL
+  customProxies: string[]; // New: List of user-saved proxy URLs
   imageHost: 'imgbb' | 'gyazo';
   imgbbApiKey: string;
   gyazoAccessToken: string;

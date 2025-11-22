@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { LogIn, AlertCircle } from 'lucide-react';
+import { LogIn, AlertCircle, Settings } from 'lucide-react';
 import { THEMES } from '../constants';
 import { AppSettings } from '../types';
 
@@ -7,9 +8,10 @@ interface LoginProps {
   onJoin: (nick: string, channel: string, password?: string) => void;
   settings: AppSettings;
   error: string | null;
+  onOpenSettings: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onJoin, settings, error }) => {
+const Login: React.FC<LoginProps> = ({ onJoin, settings, error, onOpenSettings }) => {
   // Initialize state from localStorage if available
   const [nick, setNick] = useState(() => {
     try { return localStorage.getItem('hc_saved_nick') || ''; } catch { return ''; }
@@ -41,7 +43,17 @@ const Login: React.FC<LoginProps> = ({ onJoin, settings, error }) => {
 
   return (
     <div className={`min-h-screen flex items-center justify-center ${theme.bg} ${theme.fg} transition-colors duration-300`}>
-      <div className={`max-w-md w-full p-8 rounded-xl shadow-2xl border ${theme.border} ${theme.sidebarBg}`}>
+      <div className={`max-w-md w-full p-8 rounded-xl shadow-2xl border ${theme.border} ${theme.sidebarBg} relative`}>
+        
+        {/* Settings Button on Login Screen */}
+        <button 
+          onClick={onOpenSettings}
+          className={`absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition-colors opacity-60 hover:opacity-100`}
+          title="Settings & Proxy"
+        >
+          <Settings className="w-5 h-5" />
+        </button>
+
         <div className="text-center mb-8">
           <h1 className={`text-3xl font-bold mb-2 ${theme.accent}`}>Hack.Chat Redux</h1>
           <p className="opacity-70">Enter the matrix</p>
