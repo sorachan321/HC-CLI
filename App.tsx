@@ -280,6 +280,14 @@ function App() {
 
       ws.onclose = (event) => {
         console.log('Disconnected. Code:', event.code, 'Reason:', event.reason);
+        if (event.code === 1006) {
+          console.warn('🔴 CONNECTION FAILED: Code 1006 means the handshake failed.');
+          console.warn('👉 Go to the "Network" tab in DevTools, filter by "WS", and check the Status Code of the red request.');
+          console.warn('   - 403: Server rejected the connection (Origin issue?)');
+          console.warn('   - 502: Proxy Worker error (Check Worker logs in Cloudflare)');
+          console.warn('   - 522: Cloudflare Timeout');
+        }
+        
         clearInterval(pingIntervalRef.current);
         setIsConnecting(false);
         setChatState(prev => ({ ...prev, connected: false, joined: false, users: [] }));
@@ -306,9 +314,8 @@ function App() {
               }
            } else {
              // Show Error to User
-             // Code 1006 usually means "Connection Aborted" (e.g. 502 Proxy Error)
              let errorMsg = `Connection lost (Code: ${event.code})`;
-             if (event.code === 1006) errorMsg = "Connection failed. If using proxy, check URL.";
+             if (event.code === 1006) errorMsg = "Connection failed (Handshake Error). Check Console/Network tab for details.";
              if (event.reason) errorMsg += `: ${event.reason}`;
              
              setChatState(prev => ({ ...prev, error: errorMsg }));
